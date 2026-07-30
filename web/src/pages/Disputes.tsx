@@ -10,10 +10,10 @@ export function Disputes() {
 
   if (!connected) {
     return (
-      <div className="text-center py-16">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center py-16">
         <h1 className="text-3xl font-bold mb-4">Disputes</h1>
         <p className="text-muted-100">Connect your wallet to view and vote on disputes.</p>
-      </div>
+      </motion.div>
     )
   }
 
@@ -28,7 +28,6 @@ export function Disputes() {
           <p className="text-muted-100 mt-1">Community arbitration for contested pools</p>
         </div>
       </div>
-
       <DisputePanel />
     </motion.div>
   )

@@ -75,16 +75,16 @@ export interface PoolListParams {
 
 export interface CreatePoolParams {
   creator: string
-  goal: number
+  goal: number | bigint
   deadline: number
   token: string
-  metadata_hash: string
+  metadata_hash: string // hex-encoded bytes (without 0x prefix)
 }
 
 export interface DepositParams {
   pool_id: number
   supporter: string
-  amount: number
+  amount: number | bigint
 }
 
 export interface VoteParams {

@@ -1,9 +1,18 @@
 import { Client, GatewayIntentBits, SlashCommandBuilder, REST, Routes } from 'discord.js'
 import { KindlePoolAPI } from '@kindlepool/sdk'
 
-const TOKEN = process.env.DISCORD_BOT_TOKEN ?? ''
-const CLIENT_ID = process.env.DISCORD_CLIENT_ID ?? ''
+const TOKEN = process.env.DISCORD_BOT_TOKEN
+const CLIENT_ID = process.env.DISCORD_CLIENT_ID
 const API_KEY = process.env.KINDPOOL_API_KEY ?? ''
+
+if (!TOKEN) {
+  console.error('DISCORD_BOT_TOKEN is required')
+  process.exit(1)
+}
+if (!CLIENT_ID) {
+  console.error('DISCORD_CLIENT_ID is required')
+  process.exit(1)
+}
 
 const api = new KindlePoolAPI({ apiKey: API_KEY })
 

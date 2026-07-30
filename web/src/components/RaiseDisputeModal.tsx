@@ -8,22 +8,28 @@ interface RaiseDisputeModalProps {
   open: boolean
   onClose: () => void
   poolTitle: string
-  depositAmount: string
+  goalAmount: string
+  poolStatus: string
 }
 
-export function RaiseDisputeModal({ open, onClose, poolTitle, depositAmount }: RaiseDisputeModalProps) {
+export function RaiseDisputeModal({ open, onClose, poolTitle, goalAmount, poolStatus }: RaiseDisputeModalProps) {
   const { connected, address } = useWallet()
   const { toast } = useToast()
   const [reason, setReason] = useState<'rejected' | 'no_delivery'>('rejected')
   const [evidenceHash, setEvidenceHash] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  const feeAmount = (Number(depositAmount) * 0.01).toFixed(2)
-  const appealFee = (Number(feeAmount) * 2).toFixed(2)
+  // Exact same formula as contract: goal * 100 / 10000
+  const feeAmount = Math.max(1, Math.floor(Number(goalAmount) * 100 / 10000))
+  const appealFee = feeAmount * 2
 
   const handleSubmit = async () => {
     if (!connected) { toast('Connect wallet first', 'error'); return }
     if (!evidenceHash) { toast('Enter evidence hash', 'error'); return }
+    if (poolStatus === 'disputed' || poolStatus === 'appealed') {
+      toast('This pool already has an active dispute.', 'error')
+      return
+    }
     setSubmitting(true)
     await new Promise((r) => setTimeout(r, 2000))
     setSubmitting(false)
@@ -65,11 +71,14 @@ export function RaiseDisputeModal({ open, onClose, poolTitle, depositAmount }: R
 
         <div className="bg-cream-200 rounded-xl p-3 space-y-1.5 text-sm">
           <div className="flex justify-between"><span className="text-muted-100">Dispute Fee</span><span>{feeAmount} USDC</span></div>
-          <div className="flex justify-between"><span className="text-muted-100">Your Wallet</span><span className="font-mono text-xs">{address?.slice(0, 8)}...{address?.slice(-4)}</span></div>
+          <div className="flex justify-between">
+            <span className="text-muted-100">Your Wallet</span>
+            <span className="font-mono text-xs">{address ? `${address.slice(0, 8)}...${address.slice(-4)}` : 'Not connected'}</span>
+          </div>
         </div>
 
-        <Button className="w-full" onClick={handleSubmit} loading={submitting}>
-          {submitting ? 'Submitting...' : <><Send size={16} /> Raise Dispute</>}
+        <Button className="w-full" onClick={handleSubmit} loading={submitting} disabled={!connected}>
+          {!connected ? 'Connect Wallet First' : submitting ? 'Submitting...' : <><Send size={16} /> Raise Dispute</>}
         </Button>
       </div>
     </Modal>

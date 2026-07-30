@@ -12,10 +12,17 @@ app.use(cors())
 app.use(express.json())
 
 // ─── API Key Authentication ─────────────────────────────────────
+// WARNING: API keys are stored in-memory only. Restarting the server clears them.
+// In production, use a database-backed store.
 const API_KEYS = new Map<string, { name: string; tier: 'free' | 'pro'; rateLimit: number }>()
-const ADMIN_KEY = process.env.KINDPOOL_ADMIN_KEY ?? crypto.randomBytes(32).toString('hex')
 
-// Default developer API key from env
+// Admin key must be set in production via KINDPOOL_ADMIN_KEY env var.
+// If not set, a warning is logged and API key management endpoints are disabled.
+const ADMIN_KEY = process.env.KINDPOOL_ADMIN_KEY
+if (!ADMIN_KEY) {
+  console.warn('⚠️  KINDPOOL_ADMIN_KEY not set. Admin endpoints (/api/v1/admin/*) will be disabled.')
+}
+
 const DEV_API_KEY = process.env.KINDPOOL_DEV_API_KEY
 if (DEV_API_KEY) {
   API_KEYS.set(DEV_API_KEY, { name: 'default-dev', tier: 'free', rateLimit: 100 })
@@ -56,6 +63,7 @@ function authMiddleware(req: express.Request, res: express.Response, next: expre
 
 // Admin middleware for key management
 function adminAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
+  if (!ADMIN_KEY) return res.status(503).json({ error: 'Admin interface not configured. Set KINDPOOL_ADMIN_KEY.' })
   const key = req.headers['x-admin-key'] as string | undefined
   if (key !== ADMIN_KEY) return res.status(403).json({ error: 'Invalid admin key' })
   next()
@@ -193,7 +201,8 @@ export { app, generateApiKey }
 export function startApi() {
   app.listen(PORT, () => {
     console.log(`KindlePool API running on http://localhost:${PORT}`)
-    console.log(`  Admin key: ${ADMIN_KEY.slice(0, 12)}...`)
+    if (ADMIN_KEY) console.log(`  Admin key: ${ADMIN_KEY.slice(0, 12)}...`)
+    else console.log('  Admin key: NOT CONFIGURED — set KINDPOOL_ADMIN_KEY')
     if (DEV_API_KEY) console.log('  Dev API key configured')
   })
 }

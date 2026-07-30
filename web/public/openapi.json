@@ -6,13 +6,11 @@
     "description": "REST API for KindlePool — micro-sponsor pools on Stellar Soroban.\n\nBase URL: `https://api.kindlepool.dev/v1`\n\nAuthentication: `X-API-Key` header (get one from the developer portal)."
   },
   "servers": [
-    { "url": "https://api.kindlepool.dev/v1", "description": "Production" },
-    { "url": "https://staging-api.kindlepool.dev/v1", "description": "Staging" },
-    { "url": "http://localhost:3001/api/v1", "description": "Local development" }
+    { "url": "https://api.kindlepool.dev", "description": "Production" },
+    { "url": "https://staging-api.kindlepool.dev", "description": "Staging" },
+    { "url": "http://localhost:3001", "description": "Local development" }
   ],
-  "security": [
-    { "ApiKeyAuth": [] }
-  ],
+  "security": [],
   "components": {
     "securitySchemes": {
       "ApiKeyAuth": { "type": "apiKey", "in": "header", "name": "X-API-Key" }
@@ -80,7 +78,7 @@
     }
   },
   "paths": {
-    "/health": {
+    "/api/v1/health": {
       "get": {
         "summary": "Health check",
         "tags": ["System"],
@@ -90,10 +88,11 @@
         }
       }
     },
-    "/pools": {
+    "/api/v1/pools": {
       "get": {
         "summary": "List pools",
         "tags": ["Pools"],
+        "security": [],
         "parameters": [
           { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["open", "awaiting_vote", "paid", "expired"] } },
           { "name": "creator", "in": "query", "schema": { "type": "string" } },
@@ -106,10 +105,11 @@
         }
       }
     },
-    "/pools/{id}": {
+    "/api/v1/pools/{id}": {
       "get": {
         "summary": "Get pool by ID",
         "tags": ["Pools"],
+        "security": [],
         "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
         "responses": {
           "200": { "description": "Pool details", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Pool" } } } },
@@ -117,20 +117,22 @@
         }
       }
     },
-    "/pools/{id}/supporters": {
+    "/api/v1/pools/{id}/supporters": {
       "get": {
         "summary": "List pool supporters",
         "tags": ["Pools"],
+        "security": [],
         "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
         "responses": {
           "200": { "description": "List of supporters", "content": { "application/json": { "schema": { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/Supporter" } } } } } } }
         }
       }
     },
-    "/pools/{id}/events": {
+    "/api/v1/pools/{id}/events": {
       "get": {
         "summary": "Get pool event history",
         "tags": ["Pools"],
+        "security": [],
         "parameters": [
           { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } },
           { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 50 } }
@@ -140,30 +142,33 @@
         }
       }
     },
-    "/supporters/{address}/pools": {
+    "/api/v1/supporters/{address}/pools": {
       "get": {
         "summary": "Get pools funded by a supporter",
         "tags": ["Supporters"],
+        "security": [],
         "parameters": [{ "name": "address", "in": "path", "required": true, "schema": { "type": "string" } }],
         "responses": {
           "200": { "description": "List of pools" }
         }
       }
     },
-    "/creators/{address}/pools": {
+    "/api/v1/creators/{address}/pools": {
       "get": {
         "summary": "Get pools created by a creator",
         "tags": ["Creators"],
+        "security": [],
         "parameters": [{ "name": "address", "in": "path", "required": true, "schema": { "type": "string" } }],
         "responses": {
           "200": { "description": "List of pools" }
         }
       }
     },
-    "/events": {
+    "/api/v1/events": {
       "get": {
         "summary": "Get all events",
         "tags": ["Events"],
+        "security": [],
         "parameters": [
           { "name": "type", "in": "query", "schema": { "type": "string" } },
           { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 50 } }

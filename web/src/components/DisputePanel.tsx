@@ -1,7 +1,6 @@
 import { motion } from 'framer-motion'
 import { Card, Button, Badge } from './ui'
 import { useWallet } from '../lib/wallet'
-import { useToast } from '../lib/toast'
 import { useState } from 'react'
 import { Scale, AlertTriangle, ArrowUpRight, Check, X, Clock } from 'lucide-react'
 
@@ -23,28 +22,46 @@ export interface DisputeData {
   totalVotes: number
 }
 
-const MOCK_DISPUTES: DisputeData[] = [
-  {
-    id: 1, poolId: 2, poolTitle: 'Short Story Collection',
-    raisedBy: 'GBCD...3456', reason: 0, reasonText: 'Work does not meet quality standards',
-    evidenceHash: 'QmX...abc123', fee: '3',
-    status: 'open', createdAt: Date.now() - 172800000, resolvedAt: null,
-    appealCount: 0, votesForCreator: 1, votesAgainstCreator: 2, totalVotes: 3,
-  },
-]
-
 export function DisputePanel() {
   const { connected } = useWallet()
-  const { toast } = useToast()
-  const [disputes] = useState<DisputeData[]>(MOCK_DISPUTES)
+  const [disputes, setDisputes] = useState<DisputeData[]>([])
+  const [loading, setLoading] = useState(true)
   const [activeDispute, setActiveDispute] = useState<number | null>(null)
 
-  const statusColors: Record<string, 'warning' | 'success' | 'error' | 'default'> = {
-    open: 'warning', resolved_creator: 'success', resolved_supporters: 'error', appealed: 'default',
+  // Fetch from API
+  useState(() => {
+    fetch('/api/v1/events?type=p_disp')
+      .then((r) => r.json())
+      .then((res) => {
+        if (res?.data?.length) setDisputes(res.data.map(mapEventToDispute))
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  })
+
+  const statusColors: Record<string, 'warning' | 'success' | 'default'> = {
+    open: 'warning', resolved_creator: 'success', resolved_supporters: 'default', appealed: 'warning',
   }
 
   const statusLabels: Record<string, string> = {
-    open: 'Open', resolved_creator: 'Resolved — Creator Wins', resolved_supporters: 'Resolved — Supporters Win', appealed: 'Appealed',
+    open: 'Open', resolved_creator: 'Creator Wins', resolved_supporters: 'Supporters Win', appealed: 'Appealed',
+  }
+
+  if (!connected) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <Scale className="text-warm-300" size={24} />
+          <div>
+            <h2 className="text-xl font-bold">Dispute Resolution</h2>
+            <p className="text-sm text-muted-100">Community arbitration for contested pools</p>
+          </div>
+        </div>
+        <Card className="text-center py-8">
+          <p className="text-muted-100">Connect your wallet to view and vote on disputes.</p>
+        </Card>
+      </div>
+    )
   }
 
   return (
@@ -57,9 +74,9 @@ export function DisputePanel() {
         </div>
       </div>
 
-      {!connected ? (
+      {loading ? (
         <Card className="text-center py-8">
-          <p className="text-muted-100">Connect your wallet to view and vote on disputes.</p>
+          <p className="text-muted-100">Loading disputes...</p>
         </Card>
       ) : disputes.length === 0 ? (
         <Card className="text-center py-8 space-y-3">
@@ -73,11 +90,11 @@ export function DisputePanel() {
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                    d.status === 'open' ? 'bg-warning/20' : d.status === 'resolved_creator' ? 'bg-success/20' : 'bg-error/20'
+                    d.status === 'open' || d.status === 'appealed' ? 'bg-warning/20' : d.status === 'resolved_creator' ? 'bg-success/20' : 'bg-cream-300'
                   }`}>
-                    {d.status === 'open' ? <Clock className="text-warning" size={20} /> :
+                    {d.status === 'open' || d.status === 'appealed' ? <Clock className="text-warning" size={20} /> :
                      d.status === 'resolved_creator' ? <Check className="text-success" size={20} /> :
-                     <X className="text-error" size={20} />}
+                     <X className="text-muted-200" size={20} />}
                   </div>
                   <div>
                     <h4 className="font-bold">{d.poolTitle}</h4>
@@ -109,7 +126,7 @@ export function DisputePanel() {
               </div>
 
               {(d.status === 'open' || d.status === 'appealed') && (
-                <Button size="sm" variant="secondary" onClick={() => toast('Arbitration voting panel opening...', 'info')}>
+                <Button size="sm" variant="secondary" onClick={() => window.location.href = `/disputes/${d.id}/arbitrate`}>
                   <ArrowUpRight size={14} /> Vote as Arbitrator
                 </Button>
               )}
@@ -122,8 +139,11 @@ export function DisputePanel() {
               </button>
 
               {activeDispute === d.id && (
-                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
-                  className="space-y-2 text-xs text-muted-100 bg-cream-200 rounded-xl p-3">
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="space-y-2 text-xs text-muted-100 bg-cream-200 rounded-xl p-3 overflow-hidden"
+                >
                   <div className="flex justify-between"><span>Evidence Hash</span><span className="font-mono">{d.evidenceHash}</span></div>
                   <div className="flex justify-between"><span>Fee Collected</span><span>{d.fee} USDC</span></div>
                   <div className="flex justify-between"><span>Appeals</span><span>{d.appealCount}/2</span></div>
@@ -137,4 +157,25 @@ export function DisputePanel() {
       )}
     </div>
   )
+}
+
+function mapEventToDispute(event: any): DisputeData {
+  const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data
+  return {
+    id: event.id ?? 0,
+    poolId: data.pool_id ?? 0,
+    poolTitle: `Pool #${data.pool_id ?? 0}`,
+    raisedBy: (data.raised_by ?? 'unknown').slice(0, 8) + '...',
+    reason: data.reason ?? 0,
+    reasonText: data.reason === 1 ? 'Work not delivered' : 'Work does not meet quality standards',
+    evidenceHash: data.evidence_hash ?? '',
+    fee: data.fee ?? '0',
+    status: 'open',
+    createdAt: event.ts ?? Date.now(),
+    resolvedAt: null,
+    appealCount: 0,
+    votesForCreator: 0,
+    votesAgainstCreator: 0,
+    totalVotes: 0,
+  }
 }

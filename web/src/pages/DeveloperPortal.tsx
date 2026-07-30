@@ -140,7 +140,7 @@ export function DeveloperPortal() {
       {/* Docs Link */}
       <div className="text-center py-8">
         <a
-          href="/docs/openapi.json"
+          href="/openapi.json"
           target="_blank"
           className="inline-flex items-center gap-2 text-warm-300 hover:text-warm-400 transition-colors font-medium"
         >

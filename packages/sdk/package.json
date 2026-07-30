@@ -27,18 +27,27 @@
       "types": "./dist/types.d.ts"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup src/index.ts src/contract.ts src/api.ts src/types.ts --format esm,cjs --dts --clean",
     "dev": "tsup --watch",
     "prepublishOnly": "npm run build"
   },
-  "keywords": ["stellar", "soroban", "crowdfunding", "sponsor", "kindlepool"],
+  "keywords": [
+    "stellar",
+    "soroban",
+    "crowdfunding",
+    "sponsor",
+    "kindlepool"
+  ],
   "license": "MIT",
   "dependencies": {
     "@stellar/stellar-sdk": "^12.0.0"
   },
   "devDependencies": {
+    "@types/node": "^26.1.2",
     "tsup": "^8.0.0",
     "typescript": "^5.3.0"
   }

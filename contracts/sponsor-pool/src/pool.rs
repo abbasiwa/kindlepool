@@ -437,12 +437,12 @@ pub fn raise_dispute(
 pub fn resolve_dispute(
     env: &Env,
     pool_id: u32,
-    _caller: &Address,
+    caller: &Address,
     dispute_id: u32,
     vote_for_creator: bool,
     reason_hash: &BytesN<32>,
 ) {
-    _caller.require_auth();
+    caller.require_auth();
 
     let mut dispute = env
         .storage()
@@ -460,18 +460,15 @@ pub fn resolve_dispute(
         panic_with_error!(env, PoolError::PoolNotDisputed);
     }
 
-    // Check if this arbitrator already voted
-    let vote_key = DataKey::ArbitratorVote(dispute_id, _caller.clone());
+    let vote_key = DataKey::ArbitratorVote(dispute_id, caller.clone());
     if env.storage().instance().has(&vote_key) {
         panic_with_error!(env, PoolError::AlreadyVotedOnDispute);
     }
 
-    // Arbitrator weight = their total deposited across all pools
-    // For simplicity, use a fixed weight of 1 for now
     let weight: i128 = 1;
 
     let vote = ArbitratorVote {
-        arbitrator: _caller.clone(),
+        arbitrator: caller.clone(),
         vote_for_creator,
         weight,
         reason_hash: reason_hash.clone(),
@@ -492,7 +489,7 @@ pub fn resolve_dispute(
         (TOPIC_ARBITRATOR_VOTED,),
         ArbitratorVoteEvent {
             pool_id,
-            arbitrator: _caller.clone(),
+            arbitrator: caller.clone(),
             vote_for_creator,
             weight,
         },

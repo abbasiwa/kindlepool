@@ -1,6 +1,6 @@
 import type { PoolData, SupporterData, EventData, PaginatedResponse, PoolListParams } from './types'
 
-const BASE_URL = 'https://api.kindlepool.dev/v1'
+const BASE_URL = 'https://api.kindlepool.dev'
 
 export class KindlePoolAPI {
   private baseUrl: string

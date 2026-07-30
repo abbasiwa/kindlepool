@@ -185,7 +185,8 @@ export function PoolDetail() {
         open={showDispute}
         onClose={() => setShowDispute(false)}
         poolTitle={pool.title}
-        depositAmount={String(pool.goal)}
+        goalAmount={String(pool.goal)}
+        poolStatus={pool.status}
       />
 
       <Modal open={showSubmitWork} onClose={() => setShowSubmitWork(false)} title="Submit Work">
