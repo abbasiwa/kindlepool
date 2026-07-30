@@ -14,6 +14,7 @@ import { AddFunds } from './pages/AddFunds'
 import { CreatorAnalytics } from './pages/CreatorAnalytics'
 import { Disputes } from './pages/Disputes'
 import { DeveloperPortal } from './pages/DeveloperPortal'
+import { Pricing } from './pages/Pricing'
 import { ToastProvider } from './lib/toast'
 import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
@@ -58,6 +59,7 @@ export default function App() {
                   <Route path="/creator" element={<CreatorAnalytics />} />
                   <Route path="/disputes" element={<Disputes />} />
                   <Route path="/developers" element={<DeveloperPortal />} />
+                  <Route path="/pricing" element={<Pricing />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>

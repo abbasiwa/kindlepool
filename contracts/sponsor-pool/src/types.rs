@@ -63,6 +63,8 @@ pub enum PoolError {
     PoolNotDisputed = 27,
     AppealLimitReached = 28,
     NotEnoughArbitrators = 29,
+    FeeTooHigh = 30,
+    FeeTreasuryNotSet = 31,
 }
 
 // Events
@@ -186,6 +188,9 @@ pub enum DataKey {
     DisputeCount,
     ArbitratorVote(u32, Address),
     ArbitratorVoteList(u32),
+    FeeBps,
+    FeeTreasury,
+    FeeTotal,
 }
 
 #[contracttype]

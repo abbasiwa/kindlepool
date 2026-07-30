@@ -68,6 +68,18 @@ impl SponsorPool {
         pool::appeal_dispute(&env, pool_id, &disputant, dispute_id);
     }
 
+    pub fn set_fee(env: Env, admin: Address, fee_bps: u32, treasury: Address) {
+        pool::set_fee(&env, &admin, fee_bps, &treasury);
+    }
+
+    pub fn get_fee(env: Env) -> (i128, Option<Address>) {
+        pool::get_fee(&env)
+    }
+
+    pub fn get_total_fees_collected(env: Env) -> i128 {
+        pool::get_total_fees_collected(&env)
+    }
+
     pub fn get_dispute(env: Env, dispute_id: u32) -> Option<types::Dispute> {
         pool::get_dispute(&env, dispute_id)
     }

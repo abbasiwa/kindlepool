@@ -305,9 +305,27 @@ pub fn finalize(env: &Env, pool_id: u32) {
     let approved = pool.yes_votes > pool.no_votes;
 
     if goal_met && pool.work_hash.is_some() && approved {
-        // --- PAYOUT to creator ---
-        let amount = pool.total_deposited;
+        // --- PAYOUT to creator (minus platform fee) ---
+        let fee_bps: i128 = env.storage().instance().get(&DataKey::FeeBps).unwrap_or(0i128);
+        let fee = if fee_bps > 0 {
+            pool.total_deposited.checked_mul(fee_bps).expect("fee overflow") / 10000i128
+        } else {
+            0i128
+        };
+        let amount = pool.total_deposited.checked_sub(fee).expect("amount underflow");
+
+        // Transfer net amount to creator
         token_client.transfer(&env.current_contract_address(), &pool.creator, &amount);
+
+        // Transfer fee to treasury
+        if fee > 0 {
+            let treasury: Address = env.storage().instance().get(&DataKey::FeeTreasury)
+                .expect("FeeTreasury not set when FeeBps > 0");
+            token_client.transfer(&env.current_contract_address(), &treasury, &fee);
+
+            let total_fees: i128 = env.storage().instance().get(&DataKey::FeeTotal).unwrap_or(0i128);
+            env.storage().instance().set(&DataKey::FeeTotal, &(total_fees + fee));
+        }
 
         let mut paid_pool = pool.clone();
         paid_pool.status = STATUS_PAID;
@@ -652,6 +670,25 @@ pub fn get_arbitrator_votes(env: &Env, dispute_id: u32) -> Vec<ArbitratorVote> {
         .instance()
         .get(&DataKey::ArbitratorVoteList(dispute_id))
         .unwrap_or(Vec::new(env))
+}
+
+pub fn set_fee(env: &Env, admin: &Address, fee_bps: u32, treasury: &Address) {
+    admin.require_auth();
+    if fee_bps > 500 {
+        panic_with_error!(env, PoolError::FeeTooHigh);
+    }
+    env.storage().instance().set(&DataKey::FeeBps, &(fee_bps as i128));
+    env.storage().instance().set(&DataKey::FeeTreasury, treasury);
+}
+
+pub fn get_fee(env: &Env) -> (i128, Option<Address>) {
+    let fee_bps: i128 = env.storage().instance().get(&DataKey::FeeBps).unwrap_or(0);
+    let treasury: Option<Address> = env.storage().instance().get(&DataKey::FeeTreasury);
+    (fee_bps, treasury)
+}
+
+pub fn get_total_fees_collected(env: &Env) -> i128 {
+    env.storage().instance().get(&DataKey::FeeTotal).unwrap_or(0)
 }
 
 pub fn get_pool(env: &Env, pool_id: u32) -> Option<Pool> {

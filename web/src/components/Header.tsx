@@ -48,6 +48,7 @@ export function Header() {
           <Link to="/creator" className="text-sm text-warm-300 hover:text-warm-400 font-medium transition-colors">Studio</Link>
           <Link to="/disputes" className="text-sm text-muted-100 hover:text-text-light transition-colors">Disputes</Link>
           <Link to="/developers" className="text-sm text-muted-100 hover:text-text-light transition-colors">Developers</Link>
+          <Link to="/pricing" className="text-sm text-muted-100 hover:text-text-light transition-colors">Pricing</Link>
           <Link to="/add-funds" className="text-sm text-warm-300 hover:text-warm-400 font-medium transition-colors">{t('nav.addFunds')}</Link>
         </nav>
 
