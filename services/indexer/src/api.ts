@@ -115,9 +115,56 @@ app.delete('/api/v1/admin/webhooks/:id', adminAuth, (req, res) => {
   res.json({ success: true })
 })
 
+// ─── Monitoring Endpoints ──────────────────────────────────────
+let requestCount = 0
+let requestErrors = 0
+const latencyBuckets: number[] = []
+
+app.use((_req, res, next) => {
+  requestCount++
+  const start = Date.now()
+  res.on('finish', () => {
+    const latency = Date.now() - start
+    latencyBuckets.push(latency)
+    if (latencyBuckets.length > 1000) latencyBuckets.shift()
+    if (res.statusCode >= 500) requestErrors++
+  })
+  next()
+})
+
+app.get('/api/v1/admin/monitoring', adminAuth, (_req, res) => {
+  const avgLatency = latencyBuckets.length > 0
+    ? latencyBuckets.reduce((a, b) => a + b, 0) / latencyBuckets.length
+    : 0
+  const p95Latency = latencyBuckets.length > 0
+    ? latencyBuckets.sort((a, b) => a - b)[Math.floor(latencyBuckets.length * 0.95)]
+    : 0
+
+  res.json({
+    uptime: process.uptime(),
+    requests: {
+      total: requestCount,
+      errors: requestErrors,
+      errorRate: requestCount > 0 ? ((requestErrors / requestCount) * 100).toFixed(2) + '%' : '0%',
+    },
+    latency: {
+      avg: avgLatency.toFixed(0) + 'ms',
+      p95: p95Latency.toFixed(0) + 'ms',
+      samples: latencyBuckets.length,
+    },
+    timestamp: Date.now(),
+  })
+})
+
 // ─── Public API Endpoints ──────────────────────────────────────
 app.get('/api/v1/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: Date.now() })
+  res.json({
+    status: 'ok',
+    timestamp: Date.now(),
+    uptime: process.uptime(),
+    version: '0.1.0',
+    memory: process.memoryUsage().rss,
+  })
 })
 
 app.get('/api/v1/pools', (req, res) => {
