@@ -359,6 +359,304 @@ pub fn finalize(env: &Env, pool_id: u32) {
     }
 }
 
+pub fn raise_dispute(
+    env: &Env,
+    pool_id: u32,
+    disputant: &Address,
+    reason: u32,
+    evidence_hash: &BytesN<32>,
+) {
+    disputant.require_auth();
+
+    let pool = get_pool_internal(env, pool_id);
+    if pool.status != STATUS_AWAITING_VOTE && pool.status != STATUS_EXPIRED {
+        panic_with_error!(env, PoolError::PoolNotOpen);
+    }
+
+    // Prevent duplicate disputes
+    if env.storage().instance().has(&DataKey::Dispute(pool_id)) {
+        panic_with_error!(env, PoolError::DisputeAlreadyRaised);
+    }
+
+    if evidence_hash.is_empty() {
+        panic_with_error!(env, PoolError::NoWorkSubmitted);
+    }
+
+    // Calculate and collect dispute fee (1% of pool goal)
+    let fee = pool
+        .goal
+        .checked_mul(DISPUTE_FEE_BPS)
+        .expect("fee overflow")
+        / 10000i128;
+
+    let token_client = token::Client::new(env, &pool.token);
+    token_client.transfer(disputant, &env.current_contract_address(), &fee);
+
+    let id = env
+        .storage()
+        .instance()
+        .get::<DataKey, u32>(&DataKey::DisputeCount)
+        .unwrap_or(0)
+        .checked_add(1)
+        .expect("dispute count overflow");
+    env.storage()
+        .instance()
+        .set(&DataKey::DisputeCount, &id);
+
+    let dispute = Dispute {
+        pool_id,
+        raised_by: disputant.clone(),
+        reason,
+        evidence_hash: evidence_hash.clone(),
+        fee,
+        status: 0,
+        created_at: env.ledger().timestamp(),
+        resolved_at: 0,
+        appeal_count: 0,
+    };
+    env.storage()
+        .instance()
+        .set(&DataKey::Dispute(id), &dispute);
+
+    // Set pool to disputed status
+    let mut pool_mut = get_pool_internal(env, pool_id);
+    pool_mut.status = STATUS_DISPUTED;
+    set_pool(env, pool_id, &pool_mut);
+
+    env.events().publish(
+        (TOPIC_DISPUTE_RAISED,),
+        DisputeRaisedEvent {
+            pool_id,
+            raised_by: disputant.clone(),
+            reason,
+            fee,
+        },
+    );
+}
+
+pub fn resolve_dispute(
+    env: &Env,
+    pool_id: u32,
+    _caller: &Address,
+    dispute_id: u32,
+    vote_for_creator: bool,
+    reason_hash: &BytesN<32>,
+) {
+    _caller.require_auth();
+
+    let mut dispute = env
+        .storage()
+        .instance()
+        .get::<DataKey, Dispute>(&DataKey::Dispute(dispute_id))
+        .ok_or(PoolError::PoolNotFound)
+        .unwrap();
+
+    if dispute.status != 0 && dispute.status != 3 {
+        panic_with_error!(env, PoolError::DisputeAlreadyRaised);
+    }
+
+    let pool = get_pool_internal(env, pool_id);
+    if pool.status != STATUS_DISPUTED && pool.status != STATUS_APPEALED {
+        panic_with_error!(env, PoolError::PoolNotDisputed);
+    }
+
+    // Check if this arbitrator already voted
+    let vote_key = DataKey::ArbitratorVote(dispute_id, _caller.clone());
+    if env.storage().instance().has(&vote_key) {
+        panic_with_error!(env, PoolError::AlreadyVotedOnDispute);
+    }
+
+    // Arbitrator weight = their total deposited across all pools
+    // For simplicity, use a fixed weight of 1 for now
+    let weight: i128 = 1;
+
+    let vote = ArbitratorVote {
+        arbitrator: _caller.clone(),
+        vote_for_creator,
+        weight,
+        reason_hash: reason_hash.clone(),
+    };
+    env.storage().instance().set(&vote_key, &vote);
+
+    let mut vote_list: Vec<ArbitratorVote> = env
+        .storage()
+        .instance()
+        .get(&DataKey::ArbitratorVoteList(dispute_id))
+        .unwrap_or(Vec::new(env));
+    vote_list.push_back(vote);
+    env.storage()
+        .instance()
+        .set(&DataKey::ArbitratorVoteList(dispute_id), &vote_list);
+
+    env.events().publish(
+        (TOPIC_ARBITRATOR_VOTED,),
+        ArbitratorVoteEvent {
+            pool_id,
+            arbitrator: _caller.clone(),
+            vote_for_creator,
+            weight,
+        },
+    );
+}
+
+pub fn close_dispute(env: &Env, pool_id: u32, dispute_id: u32) {
+    let mut dispute = env
+        .storage()
+        .instance()
+        .get::<DataKey, Dispute>(&DataKey::Dispute(dispute_id))
+        .ok_or(PoolError::PoolNotFound)
+        .unwrap();
+
+    if dispute.status != 0 && dispute.status != 3 {
+        panic_with_error!(env, PoolError::DisputeAlreadyRaised);
+    }
+
+    let pool = get_pool_internal(env, pool_id);
+    let vote_list: Vec<ArbitratorVote> = env
+        .storage()
+        .instance()
+        .get(&DataKey::ArbitratorVoteList(dispute_id))
+        .unwrap_or(Vec::new(env));
+
+    let mut votes_for_creator: i128 = 0;
+    let mut votes_against_creator: i128 = 0;
+    for i in 0..vote_list.len() {
+        if let Some(v) = vote_list.get(i) {
+            if v.vote_for_creator {
+                votes_for_creator += v.weight;
+            } else {
+                votes_against_creator += v.weight;
+            }
+        }
+    }
+
+    let resolution: u32;
+    if votes_for_creator > votes_against_creator {
+        // Resolved in favor of creator — pay the creator
+        let token_client = token::Client::new(env, &pool.token);
+        token_client.transfer(
+            &env.current_contract_address(),
+            &pool.creator,
+            &pool.total_deposited,
+        );
+        dispute.status = 1;
+        resolution = 1;
+
+        let mut paid_pool = pool.clone();
+        paid_pool.status = STATUS_PAID;
+        set_pool(env, pool_id, &paid_pool);
+    } else {
+        // Resolved in favor of supporters — refund
+        let token_client = token::Client::new(env, &pool.token);
+        let supporter_list: Vec<SupporterSnapshot> = env
+            .storage()
+            .instance()
+            .get(&DataKey::SupporterList(pool_id))
+            .unwrap_or(Vec::new(env));
+        for i in 0..supporter_list.len() {
+            if let Some(s) = supporter_list.get(i) {
+                if s.amount > 0 {
+                    let _ = token_client.try_transfer(
+                        &env.current_contract_address(),
+                        &s.address,
+                        &s.amount,
+                    );
+                }
+            }
+        }
+        dispute.status = 2;
+        resolution = 2;
+
+        let mut expired_pool = pool.clone();
+        expired_pool.status = STATUS_EXPIRED;
+        set_pool(env, pool_id, &expired_pool);
+    }
+
+    dispute.resolved_at = env.ledger().timestamp();
+    env.storage()
+        .instance()
+        .set(&DataKey::Dispute(dispute_id), &dispute);
+
+    // Return fee to winner
+    let token_client = token::Client::new(env, &pool.token);
+    let winner = if resolution == 1 {
+        &pool.creator
+    } else {
+        &dispute.raised_by
+    };
+    let _ = token_client.try_transfer(
+        &env.current_contract_address(),
+        winner,
+        &dispute.fee,
+    );
+
+    env.events().publish(
+        (TOPIC_DISPUTE_RESOLVED,),
+        DisputeResolvedEvent {
+            pool_id,
+            resolution,
+            votes_for_creator,
+            votes_against_creator,
+        },
+    );
+}
+
+pub fn appeal_dispute(
+    env: &Env,
+    pool_id: u32,
+    disputant: &Address,
+    dispute_id: u32,
+) {
+    disputant.require_auth();
+
+    let mut dispute = env
+        .storage()
+        .instance()
+        .get::<DataKey, Dispute>(&DataKey::Dispute(dispute_id))
+        .ok_or(PoolError::PoolNotFound)
+        .unwrap();
+
+    if dispute.status != 0 && dispute.status != 3 {
+        panic_with_error!(env, PoolError::DisputeAlreadyRaised);
+    }
+    if dispute.appeal_count >= 2 {
+        panic_with_error!(env, PoolError::AppealLimitReached);
+    }
+
+    // Double the fee for appeal
+    let additional_fee = dispute.fee;
+    let pool = get_pool_internal(env, pool_id);
+    let token_client = token::Client::new(env, &pool.token);
+    token_client.transfer(disputant, &env.current_contract_address(), &additional_fee);
+
+    dispute.fee = dispute
+        .fee
+        .checked_add(additional_fee)
+        .expect("fee overflow");
+    dispute.status = 3;
+    dispute.appeal_count = dispute.appeal_count.saturating_add(1);
+    env.storage()
+        .instance()
+        .set(&DataKey::Dispute(dispute_id), &dispute);
+
+    let mut pool_mut = get_pool_internal(env, pool_id);
+    pool_mut.status = STATUS_APPEALED;
+    set_pool(env, pool_id, &pool_mut);
+}
+
+pub fn get_dispute(env: &Env, dispute_id: u32) -> Option<Dispute> {
+    env.storage()
+        .instance()
+        .get::<DataKey, Dispute>(&DataKey::Dispute(dispute_id))
+}
+
+pub fn get_arbitrator_votes(env: &Env, dispute_id: u32) -> Vec<ArbitratorVote> {
+    env.storage()
+        .instance()
+        .get(&DataKey::ArbitratorVoteList(dispute_id))
+        .unwrap_or(Vec::new(env))
+}
+
 pub fn get_pool(env: &Env, pool_id: u32) -> Option<Pool> {
     env.storage()
         .instance()

@@ -5,7 +5,8 @@ import { useWallet } from '../lib/wallet'
 import { useToast } from '../lib/toast'
 import { useState, useMemo } from 'react'
 import { getPoolById } from '../lib/mock-data'
-import { ArrowLeft, Check, X, Upload } from 'lucide-react'
+import { RaiseDisputeModal } from '../components/RaiseDisputeModal'
+import { ArrowLeft, Check, X, Upload, AlertTriangle } from 'lucide-react'
 
 export function PoolDetail() {
   const { id } = useParams()
@@ -19,6 +20,7 @@ export function PoolDetail() {
   const [depositAmount, setDepositAmount] = useState('')
   const [showVote, setShowVote] = useState(false)
   const [showSubmitWork, setShowSubmitWork] = useState(false)
+  const [showDispute, setShowDispute] = useState(false)
 
   const remaining = pool ? pool.goal - pool.raised : 0
   const isCreator = false
@@ -103,6 +105,11 @@ export function PoolDetail() {
               <Upload size={18} /> Submit Work
             </Button>
           )}
+          {(pool.status === 'vote' || pool.status === 'expired') && (
+            <Button variant="secondary" className="flex-1" size="lg" onClick={() => connected ? setShowDispute(true) : toast('Connect wallet first', 'error')}>
+              <AlertTriangle size={18} /> Raise Dispute
+            </Button>
+          )}
         </div>
       </Card>
 
@@ -173,6 +180,13 @@ export function PoolDetail() {
           </div>
         </div>
       </Modal>
+
+      <RaiseDisputeModal
+        open={showDispute}
+        onClose={() => setShowDispute(false)}
+        poolTitle={pool.title}
+        depositAmount={String(pool.goal)}
+      />
 
       <Modal open={showSubmitWork} onClose={() => setShowSubmitWork(false)} title="Submit Work">
         <div className="space-y-4">

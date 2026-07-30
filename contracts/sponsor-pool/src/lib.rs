@@ -39,6 +39,46 @@ impl SponsorPool {
         pool::finalize(&env, pool_id);
     }
 
+    pub fn raise_dispute(
+        env: Env,
+        pool_id: u32,
+        disputant: Address,
+        reason: u32,
+        evidence_hash: BytesN<32>,
+    ) {
+        pool::raise_dispute(&env, pool_id, &disputant, reason, &evidence_hash);
+    }
+
+    pub fn resolve_dispute(
+        env: Env,
+        pool_id: u32,
+        caller: Address,
+        dispute_id: u32,
+        vote_for_creator: bool,
+        reason_hash: BytesN<32>,
+    ) {
+        pool::resolve_dispute(&env, pool_id, &caller, dispute_id, vote_for_creator, &reason_hash);
+    }
+
+    pub fn close_dispute(env: Env, pool_id: u32, dispute_id: u32) {
+        pool::close_dispute(&env, pool_id, dispute_id);
+    }
+
+    pub fn appeal_dispute(env: Env, pool_id: u32, disputant: Address, dispute_id: u32) {
+        pool::appeal_dispute(&env, pool_id, &disputant, dispute_id);
+    }
+
+    pub fn get_dispute(env: Env, dispute_id: u32) -> Option<types::Dispute> {
+        pool::get_dispute(&env, dispute_id)
+    }
+
+    pub fn get_arbitrator_votes(
+        env: Env,
+        dispute_id: u32,
+    ) -> soroban_sdk::Vec<types::ArbitratorVote> {
+        pool::get_arbitrator_votes(&env, dispute_id)
+    }
+
     pub fn get_pool(env: Env, pool_id: u32) -> Option<types::Pool> {
         pool::get_pool(&env, pool_id)
     }

@@ -1,4 +1,4 @@
-use soroban_sdk::{contracterror, contracttype, Address, BytesN};
+use soroban_sdk::{contracterror, contracttype, Address, BytesN, Vec};
 
 #[contracttype]
 #[derive(Clone, Debug)]
@@ -31,14 +31,6 @@ pub struct SupporterSnapshot {
     pub amount: i128,
 }
 
-#[contracttype]
-pub enum DataKey {
-    Pool(u32),
-    PoolCount,
-    Supporter(u32, Address),
-    SupporterList(u32),
-}
-
 #[contracterror]
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum PoolError {
@@ -60,6 +52,17 @@ pub enum PoolError {
     InsufficientBalance = 16,
     MathOverflow = 17,
     NotEnoughSupporters = 18,
+    NoDisputeToResolve = 19,
+    DisputeAlreadyRaised = 20,
+    NotDisputant = 21,
+    DisputeFeeInsufficient = 22,
+    AppealDeadlinePassed = 23,
+    AlreadyAppealed = 24,
+    NotArbitrator = 25,
+    AlreadyVotedOnDispute = 26,
+    PoolNotDisputed = 27,
+    AppealLimitReached = 28,
+    NotEnoughArbitrators = 29,
 }
 
 // Events
@@ -130,6 +133,14 @@ pub const STATUS_EXPIRED: u32 = 3;
 pub const REFUND_REASON_REJECTED: u32 = 0;
 pub const REFUND_REASON_EXPIRED: u32 = 1;
 
+pub const STATUS_DISPUTED: u32 = 4;
+pub const STATUS_APPEALED: u32 = 5;
+
+pub const DISPUTE_REASON_REJECTED: u32 = 0;
+pub const DISPUTE_REASON_NO_DELIVERY: u32 = 1;
+
+pub const DISPUTE_FEE_BPS: i128 = 100; // 1% fee for raising dispute
+
 pub const TOPIC_POOL_CREATED: soroban_sdk::Symbol = soroban_sdk::symbol_short!("p_creat");
 pub const TOPIC_DEPOSITED: soroban_sdk::Symbol = soroban_sdk::symbol_short!("p_dep");
 pub const TOPIC_GOAL_REACHED: soroban_sdk::Symbol = soroban_sdk::symbol_short!("p_goal");
@@ -137,3 +148,69 @@ pub const TOPIC_WORK_SUBMITTED: soroban_sdk::Symbol = soroban_sdk::symbol_short!
 pub const TOPIC_VOTE_CAST: soroban_sdk::Symbol = soroban_sdk::symbol_short!("p_vote");
 pub const TOPIC_POOL_PAID: soroban_sdk::Symbol = soroban_sdk::symbol_short!("p_paid");
 pub const TOPIC_POOL_REFUNDED: soroban_sdk::Symbol = soroban_sdk::symbol_short!("p_ref");
+pub const TOPIC_DISPUTE_RAISED: soroban_sdk::Symbol = soroban_sdk::symbol_short!("p_disp");
+pub const TOPIC_DISPUTE_RESOLVED: soroban_sdk::Symbol = soroban_sdk::symbol_short!("p_resl");
+pub const TOPIC_ARBITRATOR_VOTED: soroban_sdk::Symbol = soroban_sdk::symbol_short!("p_arbv");
+
+// Dispute types
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct Dispute {
+    pub pool_id: u32,
+    pub raised_by: Address,
+    pub reason: u32,
+    pub evidence_hash: BytesN<32>,
+    pub fee: i128,
+    pub status: u32, // 0=open, 1=resolved_for_creator, 2=resolved_for_supporters, 3=appealed
+    pub created_at: u64,
+    pub resolved_at: u64,
+    pub appeal_count: u32,
+}
+
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct ArbitratorVote {
+    pub arbitrator: Address,
+    pub vote_for_creator: bool,
+    pub weight: i128,
+    pub reason_hash: BytesN<32>,
+}
+
+#[contracttype]
+pub enum DataKey {
+    Pool(u32),
+    PoolCount,
+    Supporter(u32, Address),
+    SupporterList(u32),
+    Dispute(u32),
+    DisputeCount,
+    ArbitratorVote(u32, Address),
+    ArbitratorVoteList(u32),
+}
+
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct DisputeRaisedEvent {
+    pub pool_id: u32,
+    pub raised_by: Address,
+    pub reason: u32,
+    pub fee: i128,
+}
+
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct DisputeResolvedEvent {
+    pub pool_id: u32,
+    pub resolution: u32,
+    pub votes_for_creator: i128,
+    pub votes_against_creator: i128,
+}
+
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct ArbitratorVoteEvent {
+    pub pool_id: u32,
+    pub arbitrator: Address,
+    pub vote_for_creator: bool,
+    pub weight: i128,
+}
