@@ -4,7 +4,7 @@ import { Button, Input, Card } from '../components/ui'
 import { useWallet } from '../lib/wallet'
 import { useToast } from '../lib/toast'
 import { useNavigate } from 'react-router-dom'
-import { POOL_TEMPLATES, type PoolTemplate } from '../lib/pool-templates'
+import { POOL_TEMPLATES, cloneMilestones, type PoolTemplate } from '../lib/pool-templates'
 import { Upload, Check, Sparkles } from 'lucide-react'
 
 export function CreatePool() {
@@ -102,7 +102,7 @@ export function CreatePool() {
                     setCategory(t.category)
                     setGoal(String(t.defaultGoal))
                     setDeadline(t.defaultDeadline)
-                    setMilestones(t.suggestedMilestones)
+                    setMilestones(cloneMilestones(t.suggestedMilestones))
                     if (t.id !== 'custom') setDescription('')
                     setStep(1)
                   }}

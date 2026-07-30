@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react'
 import { useToast } from '../lib/toast'
 import { useWallet } from '../lib/wallet'
 
@@ -45,23 +45,17 @@ export function CreatorProvider({ children }: { children: ReactNode }) {
   const { address } = useWallet()
   const { toast } = useToast()
 
-  const [profile, setProfile] = useState<CreatorProfile | null>(() => {
-    if (!address) return null
-    const stored = localStorage.getItem(`kindlepool-creator-${address}`)
-    if (stored) return JSON.parse(stored)
-    return {
-      address,
-      displayName: '',
-      bio: '',
-      socialLinks: [],
-      verified: false,
-      verificationTier: 'unverified' as const,
-      totalPools: 0,
-      totalEarned: '0',
-      successRate: 0,
-      joinedAt: Date.now(),
-    }
-  })
+  const [profile, setProfile] = useState<CreatorProfile | null>(null)
+
+  // Load profile from localStorage on wallet change
+  useEffect(() => {
+    if (!address) { setProfile(null); return }
+    try {
+      const stored = localStorage.getItem(`kindlepool-creator-${address}`)
+      if (stored) setProfile(JSON.parse(stored))
+      else setProfile(null)
+    } catch { setProfile(null) }
+  }, [address])
 
   const isCreator = !!profile
   const isVerified = profile?.verified ?? false

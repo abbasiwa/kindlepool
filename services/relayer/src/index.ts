@@ -67,7 +67,7 @@ app.post('/api/v1/relay', async (req, res) => {
       // Add a manage data operation to include the user's original tx hash as a reference
       .addOperation(Operation.manageData({
         name: 'relay',
-        value: source_address.slice(0, 32),
+        value: Buffer.from(source_address.slice(0, 32).padEnd(4, '.').slice(0, 32)),
       }))
       .build()
 
@@ -77,13 +77,18 @@ app.post('/api/v1/relay', async (req, res) => {
     const result = await server.sendTransaction(tx)
 
     if (result.status === 'PENDING') {
-      // Wait for confirmation
+      const hash = result.hash
+      if (!hash) {
+        res.status(500).json({ success: false, error: 'No transaction hash returned' })
+        return
+      }
       let attempts = 0
-      while (attempts < 30) {
-        await new Promise((r) => setTimeout(r, 1000))
-        const receipt = await server.getTransaction(result.hash!)
+      while (attempts < 15) {
+        const delay = Math.min(1000 * Math.pow(1.5, attempts), 15000)
+        await new Promise((r) => setTimeout(r, delay))
+        const receipt = await server.getTransaction(hash)
         if (receipt.status === 'SUCCESS') {
-          res.json({ success: true, hash: result.hash })
+          res.json({ success: true, hash })
           return
         }
         if (receipt.status === 'FAILED') {

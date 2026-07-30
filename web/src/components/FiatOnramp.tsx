@@ -3,11 +3,13 @@ import { motion } from 'framer-motion'
 import { Button, Card, Input } from './ui'
 import { useToast } from '../lib/toast'
 import { useWallet } from '../lib/wallet'
+import { useTranslation } from 'react-i18next'
 import { CreditCard, Wallet, Mail, Check, Loader } from 'lucide-react'
 
 type OnrampStep = 'select' | 'amount' | 'processing' | 'done'
 
 export function FiatOnramp() {
+  const { t } = useTranslation()
   const { connected, connect, createEmailWallet, emailWallet } = useWallet()
   const { toast } = useToast()
 
@@ -20,48 +22,40 @@ export function FiatOnramp() {
 
   const handleEmailSignup = useCallback(async () => {
     if (!email || !email.includes('@')) {
-      toast('Enter a valid email address', 'error')
+      toast(t('addFunds.email.placeholder'), 'error')
       return
     }
     setProcessing(true)
     try {
       const addr = await createEmailWallet(email)
-      if (addr) {
-        toast('Wallet created! You can now fund pools.', 'success')
-      } else {
-        toast('Failed to create wallet', 'error')
-      }
+      toast(addr ? t('addFunds.purchase.successDesc', { amount: '0' }) : t('addFunds.purchase.failed'), addr ? 'success' : 'error')
     } catch {
-      toast('Failed to create wallet', 'error')
+      toast(t('addFunds.purchase.failed'), 'error')
     } finally {
       setProcessing(false)
     }
-  }, [email, toast, createEmailWallet])
+  }, [email, t, toast, createEmailWallet])
 
   const handleFiatPurchase = useCallback(async () => {
     if (!fiatAmount || Number(fiatAmount) <= 0) {
-      toast('Enter a valid amount', 'error')
+      toast(t('addFunds.purchase.failed'), 'error')
       return
     }
     setStep('processing')
     setProcessing(true)
-
     try {
-      // Simulate Moonpay purchase
       await new Promise((r) => setTimeout(r, 3000))
-      const mockTx = '0x' + Array.from({ length: 64 }, () =>
-        Math.floor(Math.random() * 16).toString(16)
-      ).join('')
+      const mockTx = '0x' + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('')
       setTxHash(mockTx)
       setStep('done')
-      toast(`Purchased ${fiatAmount} USDC successfully!`, 'success')
+      toast(t('addFunds.purchase.success'), 'success')
     } catch {
-      toast('Purchase failed. Try again.', 'error')
+      toast(t('addFunds.purchase.failed'), 'error')
       setStep('amount')
     } finally {
       setProcessing(false)
     }
-  }, [fiatAmount, toast])
+  }, [fiatAmount, t, toast])
 
   const reset = useCallback(() => {
     setStep('select')
@@ -73,24 +67,14 @@ export function FiatOnramp() {
 
   if (step === 'done') {
     return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="space-y-4 text-center py-8"
-      >
+      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="space-y-4 text-center py-8">
         <div className="w-16 h-16 rounded-full bg-success/20 flex items-center justify-center mx-auto">
           <Check className="text-success" size={32} />
         </div>
-        <h3 className="text-xl font-bold">Funds Added!</h3>
-        <p className="text-sm text-muted-100">
-          {fiatAmount} USDC is available in your wallet.
-        </p>
-        {txHash && (
-          <p className="text-xs text-muted-100 font-mono break-all bg-cream-200 rounded-xl p-3">
-            TX: {txHash}
-          </p>
-        )}
-        <Button onClick={reset} variant="secondary">Fund Again</Button>
+        <h3 className="text-xl font-bold">{t('addFunds.purchase.success')}</h3>
+        <p className="text-sm text-muted-100">{t('addFunds.purchase.successDesc', { amount: fiatAmount })}</p>
+        {txHash && <p className="text-xs text-muted-100 font-mono break-all bg-cream-200 rounded-xl p-3">TX: {txHash}</p>}
+        <Button onClick={reset} variant="secondary">{t('addFunds.done.again')}</Button>
       </motion.div>
     )
   }
@@ -102,22 +86,22 @@ export function FiatOnramp() {
           <CreditCard className="text-warm-300" size={20} />
         </div>
         <div>
-          <h3 className="font-bold">Add Funds</h3>
-          <p className="text-sm text-muted-100">Buy USDC with card or bank</p>
+          <h3 className="font-bold">{t('addFunds.title')}</h3>
+          <p className="text-sm text-muted-100">{t('addFunds.subtitle')}</p>
         </div>
       </div>
 
       {step === 'select' && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
-          <p className="text-sm text-muted-100">Choose how to add funds:</p>
+          <p className="text-sm text-muted-100">{t('addFunds.select.title')}</p>
           <button
             onClick={() => { setMethod('existing'); setStep('amount') }}
             className="w-full flex items-center gap-3 p-4 rounded-xl bg-cream-200 hover:bg-cream-300 transition-colors text-left"
           >
             <Wallet size={20} className="text-warm-300 shrink-0" />
             <div>
-              <p className="font-medium text-sm">Existing Wallet</p>
-              <p className="text-xs text-muted-100">Connect Freighter and buy crypto</p>
+              <p className="font-medium text-sm">{t('addFunds.select.existing')}</p>
+              <p className="text-xs text-muted-100">{t('addFunds.select.existingDesc')}</p>
             </div>
           </button>
           <button
@@ -126,8 +110,8 @@ export function FiatOnramp() {
           >
             <Mail size={20} className="text-warm-300 shrink-0" />
             <div>
-              <p className="font-medium text-sm">Email (No Wallet Needed)</p>
-              <p className="text-xs text-muted-100">Create a wallet with just your email</p>
+              <p className="font-medium text-sm">{t('addFunds.select.email')}</p>
+              <p className="text-xs text-muted-100">{t('addFunds.select.emailDesc')}</p>
             </div>
           </button>
         </motion.div>
@@ -136,69 +120,46 @@ export function FiatOnramp() {
       {step === 'amount' && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
           {method === 'email' && !emailWallet && (
-            <Input
-              label="Email Address"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-            />
+            <Input label={t('addFunds.email.label')} type="email" value={email}
+              onChange={(e) => setEmail(e.target.value)} placeholder={t('addFunds.email.placeholder')} />
           )}
-
           {emailWallet && (
             <div className="text-sm bg-cream-200 rounded-xl p-3">
               <span className="text-muted-100">Wallet: </span>
               <span className="font-mono text-xs">{emailWallet.slice(0, 8)}...{emailWallet.slice(-4)}</span>
             </div>
           )}
-
-          {(!method || method === 'email' && !emailWallet) ? (
-            method === 'email' && !emailWallet ? (
-              <Button className="w-full" onClick={handleEmailSignup} loading={processing}>
-                {processing ? 'Creating Wallet...' : 'Create Wallet'}
-              </Button>
-            ) : null
+          {method === 'email' && !emailWallet ? (
+            <Button className="w-full" onClick={handleEmailSignup} loading={processing}>
+              {processing ? t('addFunds.email.creating') : t('addFunds.email.create')}
+            </Button>
+          ) : method === 'existing' && !connected ? (
+            <Button className="w-full" size="lg" onClick={connect}>
+              {t('addFunds.purchase.connect')}
+            </Button>
           ) : (
             <>
-              <Input
-                label="Amount (USD)"
-                type="number"
-                min={10}
-                max={1000}
-                value={fiatAmount}
-                onChange={(e) => setFiatAmount(e.target.value)}
-                placeholder="Enter amount in USD"
-              />
+              <Input label={t('addFunds.purchase.label')} type="number" min={10} max={1000}
+                value={fiatAmount} onChange={(e) => setFiatAmount(e.target.value)}
+                placeholder={t('addFunds.purchase.placeholder')} />
               <div className="flex gap-2">
                 {[10, 25, 50, 100].map((a) => (
-                  <button
-                    key={a}
-                    onClick={() => setFiatAmount(String(a))}
+                  <button key={a} onClick={() => setFiatAmount(String(a))}
                     className={`flex-1 py-2 text-sm rounded-xl font-medium transition-colors ${
                       fiatAmount === String(a) ? 'bg-warm-300 text-cream-50' : 'bg-cream-200 hover:bg-cream-300'
-                    }`}
-                  >
-                    ${a}
-                  </button>
+                    }`}>${a}</button>
                 ))}
               </div>
               <p className="text-xs text-muted-100 text-center">
-                You'll receive ≈ {Number(fiatAmount) * 0.97} USDC (3% fee)
+                {t('addFunds.purchase.fee', { amount: (Number(fiatAmount) * 0.97).toFixed(2) })}
               </p>
-              {connected ? (
-                <Button className="w-full" size="lg" onClick={handleFiatPurchase} loading={processing}>
-                  {processing ? 'Processing...' : `Buy $${fiatAmount} USDC`}
-                </Button>
-              ) : (
-                <Button className="w-full" size="lg" onClick={connect}>
-                  Connect Wallet to Continue
-                </Button>
-              )}
+              <Button className="w-full" size="lg" onClick={handleFiatPurchase} loading={processing}>
+                {processing ? t('addFunds.purchase.processing') : t('addFunds.purchase.buy', { amount: fiatAmount })}
+              </Button>
             </>
           )}
-
           <button onClick={() => setStep('select')} className="text-sm text-muted-100 hover:text-text-light mx-auto block">
-            ← Change method
+            {t('addFunds.purchase.change')}
           </button>
         </motion.div>
       )}
@@ -206,7 +167,7 @@ export function FiatOnramp() {
       {step === 'processing' && (
         <div className="text-center py-8 space-y-4">
           <Loader className="animate-spin mx-auto text-warm-300" size={32} />
-          <p className="text-sm text-muted-100">Processing your purchase...</p>
+          <p className="text-sm text-muted-100">{t('addFunds.purchase.processing')}</p>
         </div>
       )}
     </Card>

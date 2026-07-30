@@ -1,18 +1,27 @@
-const RELAYER_URL = 'http://localhost:3002'
-
 export interface RelayResult {
   success: boolean
   hash?: string
   error?: string
 }
 
-/**
- * Submits a transaction to the relayer for fee-bumping.
- * The relayer covers the XLM fee so the user doesn't need native XLM.
- */
+export interface RelayerHealth {
+  status: 'ok' | 'degraded' | 'unreachable'
+  relayer_address?: string
+  balance?: string
+}
+
+const DEFAULT_RELAYER_URL = 'http://localhost:3002'
+
+function getRelayerUrl(): string {
+  if (typeof window !== 'undefined' && (window as any).KINDPOOL_RELAYER_URL) {
+    return (window as any).KINDPOOL_RELAYER_URL
+  }
+  return DEFAULT_RELAYER_URL
+}
+
 export async function relayTransaction(txXdr: string, sourceAddress: string): Promise<RelayResult> {
   try {
-    const res = await fetch(`${RELAYER_URL}/api/v1/relay`, {
+    const res = await fetch(`${getRelayerUrl()}/api/v1/relay`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ tx_xdr: txXdr, source_address: sourceAddress }),
@@ -23,12 +32,9 @@ export async function relayTransaction(txXdr: string, sourceAddress: string): Pr
   }
 }
 
-/**
- * Returns the relayer's health status.
- */
-export async function getRelayerHealth(): Promise<any> {
+export async function getRelayerHealth(): Promise<RelayerHealth> {
   try {
-    const res = await fetch(`${RELAYER_URL}/api/v1/health`)
+    const res = await fetch(`${getRelayerUrl()}/api/v1/health`)
     return await res.json()
   } catch {
     return { status: 'unreachable' }
