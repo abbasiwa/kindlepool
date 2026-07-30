@@ -24,6 +24,7 @@ export function Header() {
           <Link to="/explore" className="text-sm text-muted-100 hover:text-text-light transition-colors">Explore</Link>
           <Link to="/create" className="text-sm text-muted-100 hover:text-text-light transition-colors">Create</Link>
           <Link to="/dashboard" className="text-sm text-muted-100 hover:text-text-light transition-colors">Dashboard</Link>
+          <Link to="/add-funds" className="text-sm text-warm-300 hover:text-warm-400 font-medium transition-colors">Add Funds</Link>
         </nav>
 
         <div className="flex items-center gap-3">

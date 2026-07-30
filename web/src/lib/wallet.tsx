@@ -8,6 +8,8 @@ export interface WalletContextType {
   disconnect: () => void
   signAndSubmit: (xdr: string) => Promise<string | null>
   network: string
+  emailWallet: string | null
+  createEmailWallet: (email: string) => Promise<string | null>
 }
 
 const WalletContext = createContext<WalletContextType>({
@@ -61,6 +63,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [address, setAddress] = useState<string | null>(null)
   const [connecting, setConnecting] = useState(false)
   const [network, setNetwork] = useState('Test SDF Network ; September 2015')
+  const [emailWallet, setEmailWallet] = useState<string | null>(null)
 
   useEffect(() => {
     (async () => {
@@ -87,6 +90,16 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }, [network])
 
   return (
+  const createEmailWallet = useCallback(async (email: string): Promise<string | null> => {
+    // Simulate Capsule/Turnkey wallet creation
+    // In production: this calls Turnkey API to create a non-custodial wallet
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
+    const addr = 'G' + Array.from({ length: 55 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+    setEmailWallet(addr)
+    setAddress(addr)
+    return addr
+  }, [])
+
     <WalletContext.Provider
       value={{
         address,
@@ -96,6 +109,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         disconnect,
         signAndSubmit,
         network,
+        emailWallet,
+        createEmailWallet,
       }}
     >
       {children}

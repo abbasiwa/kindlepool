@@ -7,6 +7,7 @@ import { Explore } from './pages/Explore'
 import { PoolDetail } from './pages/PoolDetail'
 import { CreatePool } from './pages/CreatePool'
 import { Dashboard } from './pages/Dashboard'
+import { AddFunds } from './pages/AddFunds'
 import { ToastProvider } from './lib/toast'
 import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
@@ -45,6 +46,7 @@ export default function App() {
                   <Route path="/pool/:id" element={<PoolDetail />} />
                   <Route path="/create" element={<CreatePool />} />
                   <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/add-funds" element={<AddFunds />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>
