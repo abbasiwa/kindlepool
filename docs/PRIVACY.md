@@ -41,7 +41,7 @@ We do not sell your data. We may share with:
 
 - **Access**: Request a copy of your off-chain data.
 - **Deletion**: Request deletion of off-chain data (on-chain data cannot be deleted).
-- **Opt-out**: Disable analytics telemetry via `kindlepool-telemetry` localStorage flag.
+- **Opt-out**: Disable analytics telemetry via `kindlepool-telemetry` localStorage flag set to `'false'`.
 - **Data portability**: Export your data via the API.
 
 To exercise rights: privacy@kindlepool.dev

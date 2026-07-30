@@ -80,6 +80,18 @@ impl SponsorPool {
         pool::get_total_fees_collected(&env)
     }
 
+    pub fn register_referral(env: Env, referrer: Address, referee: Address, pool_id: u32) {
+        pool::register_referral(&env, &referrer, &referee, pool_id);
+    }
+
+    pub fn claim_referral_reward(env: Env, referrer: Address) -> i128 {
+        pool::claim_referral_reward(&env, &referrer)
+    }
+
+    pub fn get_referrals(env: Env, referrer: Address) -> soroban_sdk::Vec<types::Referral> {
+        pool::get_referrals(&env, &referrer)
+    }
+
     pub fn get_dispute(env: Env, dispute_id: u32) -> Option<types::Dispute> {
         pool::get_dispute(&env, dispute_id)
     }

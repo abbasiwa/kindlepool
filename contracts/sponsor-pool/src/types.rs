@@ -138,6 +138,8 @@ pub const REFUND_REASON_EXPIRED: u32 = 1;
 pub const STATUS_DISPUTED: u32 = 4;
 pub const STATUS_APPEALED: u32 = 5;
 
+pub const REFERRAL_BONUS_BPS: i128 = 50; // 0.5% of pool goal to referrer
+
 pub const DISPUTE_REASON_REJECTED: u32 = 0;
 pub const DISPUTE_REASON_NO_DELIVERY: u32 = 1;
 
@@ -153,6 +155,8 @@ pub const TOPIC_POOL_REFUNDED: soroban_sdk::Symbol = soroban_sdk::symbol_short!(
 pub const TOPIC_DISPUTE_RAISED: soroban_sdk::Symbol = soroban_sdk::symbol_short!("p_disp");
 pub const TOPIC_DISPUTE_RESOLVED: soroban_sdk::Symbol = soroban_sdk::symbol_short!("p_resl");
 pub const TOPIC_ARBITRATOR_VOTED: soroban_sdk::Symbol = soroban_sdk::symbol_short!("p_arbv");
+pub const TOPIC_REFERRAL_REGISTERED: soroban_sdk::Symbol = soroban_sdk::symbol_short!("p_refr");
+pub const TOPIC_REFERRAL_REWARD: soroban_sdk::Symbol = soroban_sdk::symbol_short!("p_rrwd");
 
 // Dispute types
 #[contracttype]
@@ -191,6 +195,8 @@ pub enum DataKey {
     FeeBps,
     FeeTreasury,
     FeeTotal,
+    Referral(Address),
+    ReferralRewards(Address),
 }
 
 #[contracttype]
@@ -209,6 +215,30 @@ pub struct DisputeResolvedEvent {
     pub resolution: u32,
     pub votes_for_creator: i128,
     pub votes_against_creator: i128,
+}
+
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct ReferralRegisteredEvent {
+    pub referrer: Address,
+    pub referee: Address,
+}
+
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct ReferralRewardEvent {
+    pub referrer: Address,
+    pub pool_id: u32,
+    pub amount: i128,
+}
+
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct Referral {
+    pub referee: Address,
+    pub pool_id: u32,
+    pub reward: i128,
+    pub claimed: bool,
 }
 
 #[contracttype]

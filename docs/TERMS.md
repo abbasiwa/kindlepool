@@ -39,7 +39,7 @@ Fees are deducted automatically by the Smart Contract before payout. Fees are no
 All disputes are resolved through the on-chain arbitration mechanism:
 1. Supporter or Creator raises a dispute with a 1% fee.
 2. Community arbitrators vote on the outcome.
-3. The losing party may appeal once with a doubled fee.
+3. The losing party may appeal up to twice, each appeal doubling the fee.
 4. The arbitrator's decision is final and binding.
 
 ## 6. Intellectual Property

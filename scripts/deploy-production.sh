@@ -60,7 +60,10 @@ CONTRACT_ID=$(soroban contract deploy \
   --source <(echo "$SOROBAN_SECRET_KEY") \
   --rpc-url "$RPC" \
   --network-passphrase "$PASSPHRASE" \
-  --fee 100 2>&1 | tail -1)
+  --fee 100 2>&1 | tail -1) || {
+  echo "  ❌ Contract deploy failed"
+  exit 1
+}
 
 echo "  Contract ID: $CONTRACT_ID"
 
@@ -69,16 +72,19 @@ echo ""
 echo "▸ Verifying deployment..."
 sleep 5 # Wait for ledger propagation
 
-soroban contract invoke \
+echo "  Checking contract availability..."
+if soroban contract invoke \
   --id "$CONTRACT_ID" \
   --source <(echo "$SOROBAN_SECRET_KEY") \
   --rpc-url "$RPC" \
   --network-passphrase "$PASSPHRASE" \
   --fee 100 \
-  -- get_pool --pool_id 1 2>&1 | head -3
-
-echo ""
-echo "  ✅ Contract verified"
+  -- get_pool \
+  --pool_id 1 2>&1 | head -3; then
+  echo "  ✅ Contract verified"
+else
+  echo "  ⚠️  Verification call failed (pool 1 may not exist yet — deploy succeeded)"
+fi
 
 # 4. Output configuration
 echo ""

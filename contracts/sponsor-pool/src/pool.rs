@@ -327,6 +327,26 @@ pub fn finalize(env: &Env, pool_id: u32) {
             env.storage().instance().set(&DataKey::FeeTotal, &(total_fees + fee));
         }
 
+        // Credit referral rewards for all supporters
+        let supporter_list = env.storage().instance().get::<DataKey, Vec<SupporterSnapshot>>(&DataKey::SupporterList(pool_id))
+            .unwrap_or(Vec::new(env));
+        let referrer_key = DataKey::Referral(pool.creator.clone());
+        let mut referrals: Vec<Referral> = env.storage().instance().get(&referrer_key).unwrap_or(Vec::new(env));
+        for i in 0..supporter_list.len() {
+            if let Some(s) = supporter_list.get(i) {
+                for j in 0..referrals.len() {
+                    if let Some(mut r) = referrals.get(j) {
+                        if r.referee == s.address && !r.claimed && r.reward == 0 {
+                            let reward = (s.amount * REFERRAL_BONUS_BPS) / 10000i128;
+                            r.reward = reward;
+                            referrals.set(j, r);
+                        }
+                    }
+                }
+            }
+        }
+        env.storage().instance().set(&referrer_key, &referrals);
+
         let mut paid_pool = pool.clone();
         paid_pool.status = STATUS_PAID;
         set_pool(env, pool_id, &paid_pool);
@@ -547,13 +567,24 @@ pub fn close_dispute(env: &Env, pool_id: u32, dispute_id: u32) {
 
     let resolution: u32;
     if votes_for_creator > votes_against_creator {
-        // Resolved in favor of creator — pay the creator
+        // Resolved in favor of creator — pay the creator (minus platform fee)
+        let fee_bps: i128 = env.storage().instance().get(&DataKey::FeeBps).unwrap_or(0i128);
+        let fee = if fee_bps > 0 {
+            pool.total_deposited.checked_mul(fee_bps).expect("fee overflow") / 10000i128
+        } else { 0i128 };
+        let payout = pool.total_deposited.checked_sub(fee).expect("amount underflow");
+
         let token_client = token::Client::new(env, &pool.token);
-        token_client.transfer(
-            &env.current_contract_address(),
-            &pool.creator,
-            &pool.total_deposited,
-        );
+        token_client.transfer(&env.current_contract_address(), &pool.creator, &payout);
+
+        if fee > 0 {
+            if let Some(treasury) = env.storage().instance().get::<DataKey, Address>(&DataKey::FeeTreasury) {
+                let _ = token_client.try_transfer(&env.current_contract_address(), &treasury, &fee);
+                let total_fees: i128 = env.storage().instance().get(&DataKey::FeeTotal).unwrap_or(0i128);
+                env.storage().instance().set(&DataKey::FeeTotal, &(total_fees + fee));
+            }
+        }
+
         dispute.status = 1;
         resolution = 1;
 
@@ -689,6 +720,66 @@ pub fn get_fee(env: &Env) -> (i128, Option<Address>) {
 
 pub fn get_total_fees_collected(env: &Env) -> i128 {
     env.storage().instance().get(&DataKey::FeeTotal).unwrap_or(0)
+}
+
+// ─── Referral Program ──────────────────────────────────────────
+
+pub fn register_referral(env: &Env, referrer: &Address, referee: &Address, pool_id: u32) {
+    referrer.require_auth();
+    if referrer == referee {
+        panic_with_error!(env, PoolError::InvalidGoal);
+    }
+
+    let key = DataKey::Referral(referrer.clone());
+    let mut referrals: Vec<Referral> = env.storage().instance().get(&key).unwrap_or(Vec::new(env));
+    for i in 0..referrals.len() {
+        if let Some(r) = referrals.get(i) {
+            if r.referee == *referee && r.pool_id == pool_id {
+                return; // Already registered
+            }
+        }
+    }
+    referrals.push_back(Referral { referee: referee.clone(), pool_id, reward: 0, claimed: false });
+    env.storage().instance().set(&key, &referrals);
+
+    env.events().publish(
+        (TOPIC_REFERRAL_REGISTERED,),
+        ReferralRegisteredEvent { referrer: referrer.clone(), referee: referee.clone() },
+    );
+}
+
+pub fn claim_referral_reward(env: &Env, referrer: &Address) -> i128 {
+    referrer.require_auth();
+    let key = DataKey::Referral(referrer.clone());
+    let mut referrals: Vec<Referral> = env.storage().instance().get(&key).unwrap_or(Vec::new(env));
+    let mut total_reward: i128 = 0;
+    let mut updated = Vec::new(env);
+
+    for i in 0..referrals.len() {
+        if let Some(mut r) = referrals.get(i) {
+            if !r.claimed && r.reward > 0 {
+                total_reward += r.reward;
+                r.claimed = true;
+            }
+            updated.push_back(r);
+        }
+    }
+
+    if total_reward > 0 && updated.len() > 0 {
+        env.storage().instance().set(&key, &updated);
+
+        if let Some(first) = updated.get(0) {
+            let pool = get_pool_internal(env, first.pool_id);
+            let token_client = token::Client::new(env, &pool.token);
+            let _ = token_client.try_transfer(&env.current_contract_address(), referrer, &total_reward);
+        }
+    }
+
+    total_reward
+}
+
+pub fn get_referrals(env: &Env, referrer: &Address) -> Vec<Referral> {
+    env.storage().instance().get(&DataKey::Referral(referrer.clone())).unwrap_or(Vec::new(env))
 }
 
 pub fn get_pool(env: &Env, pool_id: u32) -> Option<Pool> {
