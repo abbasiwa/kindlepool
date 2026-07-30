@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Card, Button, ProgressBar } from '../components/ui'
 import { Sparkles, Users, Shield } from 'lucide-react'
@@ -27,6 +28,8 @@ const featuredPools = [
 ]
 
 export function Home() {
+  const navigate = useNavigate()
+
   return (
     <div className="space-y-16">
       {/* Hero */}
@@ -45,8 +48,8 @@ export function Home() {
           releases only if quality thresholds are met, and auto-refunds otherwise.
         </p>
         <div className="flex items-center justify-center gap-4 pt-4">
-          <Button size="lg">Explore Pools</Button>
-          <Button size="lg" variant="secondary">Create a Pool</Button>
+          <Button size="lg" onClick={() => navigate('/explore')}>Explore Pools</Button>
+          <Button size="lg" variant="secondary" onClick={() => navigate('/create')}>Create a Pool</Button>
         </div>
       </motion.section>
 
@@ -79,7 +82,7 @@ export function Home() {
       >
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold">Trending Pools</h2>
-          <Button variant="ghost" size="sm">View all →</Button>
+          <Button variant="ghost" size="sm" onClick={() => navigate('/explore')}>View all →</Button>
         </div>
         <div className="grid md:grid-cols-3 gap-6">
           {featuredPools.map((pool, i) => (
@@ -103,7 +106,7 @@ export function Home() {
                   </div>
                   <div className="flex items-center justify-between text-xs text-muted-100">
                     <span>Ends in {pool.deadline}</span>
-                    <Button size="sm">Fund</Button>
+                    <Button size="sm" onClick={(e) => { e.stopPropagation(); navigate(`/pool/${pool.id}`); }}>Fund</Button>
                   </div>
                 </div>
               </Card>
