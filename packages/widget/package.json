@@ -1,0 +1,15 @@
+{
+  "name": "@kindlepool/widget",
+  "version": "0.1.0",
+  "description": "Embeddable KindlePool pool widget",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@kindlepool/sdk": "^0.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0"
+  }
+}

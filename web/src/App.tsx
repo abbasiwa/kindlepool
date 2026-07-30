@@ -13,6 +13,7 @@ import { Dashboard } from './pages/Dashboard'
 import { AddFunds } from './pages/AddFunds'
 import { CreatorAnalytics } from './pages/CreatorAnalytics'
 import { Disputes } from './pages/Disputes'
+import { DeveloperPortal } from './pages/DeveloperPortal'
 import { ToastProvider } from './lib/toast'
 import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
@@ -56,6 +57,7 @@ export default function App() {
                   <Route path="/add-funds" element={<AddFunds />} />
                   <Route path="/creator" element={<CreatorAnalytics />} />
                   <Route path="/disputes" element={<Disputes />} />
+                  <Route path="/developers" element={<DeveloperPortal />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>

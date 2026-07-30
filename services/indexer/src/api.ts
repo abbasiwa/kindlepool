@@ -1,8 +1,9 @@
 import express from 'express'
 import cors from 'cors'
 import rateLimit from 'express-rate-limit'
-import { queryPools, getPoolById, getSupportersByPool, getPoolsBySupporter, getPoolsByCreator, getEvents } from './db'
-import type { PoolListQuery, PaginatedResponse, PoolRow, SupporterRow, EventRow } from './types'
+import crypto from 'crypto'
+import { queryPools, getPoolById, getSupportersByPool, getPoolsBySupporter, getPoolsByCreator, getEvents, getDb } from './db'
+import type { PoolListQuery } from './types'
 
 const app = express()
 const PORT = parseInt(process.env.KINDPOOL_API_PORT ?? '3001', 10)
@@ -10,16 +11,103 @@ const PORT = parseInt(process.env.KINDPOOL_API_PORT ?? '3001', 10)
 app.use(cors())
 app.use(express.json())
 
-const limiter = rateLimit({
+// ─── API Key Authentication ─────────────────────────────────────
+const API_KEYS = new Map<string, { name: string; tier: 'free' | 'pro'; rateLimit: number }>()
+const ADMIN_KEY = process.env.KINDPOOL_ADMIN_KEY ?? crypto.randomBytes(32).toString('hex')
+
+// Default developer API key from env
+const DEV_API_KEY = process.env.KINDPOOL_DEV_API_KEY
+if (DEV_API_KEY) {
+  API_KEYS.set(DEV_API_KEY, { name: 'default-dev', tier: 'free', rateLimit: 100 })
+}
+
+function generateApiKey(name: string, tier: 'free' | 'pro'): string {
+  const key = `kp_${crypto.randomBytes(24).toString('hex')}`
+  API_KEYS.set(key, { name, tier, rateLimit: tier === 'pro' ? 10000 : 100 })
+  return key
+}
+
+// Rate limit by API key or IP
+const keyLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: parseInt(process.env.KINDPOOL_RATE_LIMIT ?? '100', 10),
+  max: 100,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Too many requests. Try again later.' },
+  keyGenerator: (req) => {
+    const apiKey = req.headers['x-api-key'] as string | undefined
+    if (apiKey && API_KEYS.has(apiKey)) return apiKey
+    return req.ip ?? 'unknown'
+  },
+  handler: (_req, res) => { res.status(429).json({ error: 'Rate limit exceeded' }) },
 })
 
-app.use('/api/', limiter)
+function authMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const apiKey = req.headers['x-api-key'] as string | undefined
+  if (!apiKey) {
+    // Allow unauthenticated access to public endpoints (GET /pools, /health)
+    if (req.method === 'GET') return next()
+    return res.status(401).json({ error: 'Missing X-API-Key header' })
+  }
+  const keyData = API_KEYS.get(apiKey)
+  if (!keyData) return res.status(403).json({ error: 'Invalid API key' })
+  ;(req as any).apiKeyData = keyData
+  next()
+}
 
+// Admin middleware for key management
+function adminAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const key = req.headers['x-admin-key'] as string | undefined
+  if (key !== ADMIN_KEY) return res.status(403).json({ error: 'Invalid admin key' })
+  next()
+}
+
+// Apply middlewares
+app.use(keyLimiter)
+app.use(authMiddleware)
+
+// ─── API Key Management (admin only) ────────────────────────────
+app.post('/api/v1/admin/keys', adminAuth, (req, res) => {
+  const { name, tier } = req.body as { name: string; tier?: 'free' | 'pro' }
+  if (!name) { res.status(400).json({ error: 'Missing name' }); return }
+  const key = generateApiKey(name, tier ?? 'free')
+  res.json({ api_key: key, name, tier: tier ?? 'free' })
+})
+
+app.get('/api/v1/admin/keys', adminAuth, (_req, res) => {
+  const keys = Array.from(API_KEYS.entries()).map(([key, data]) => ({ key: key.slice(0, 12) + '...', ...data }))
+  res.json({ data: keys })
+})
+
+// ─── Webhook System ─────────────────────────────────────────────
+interface Webhook {
+  id: string
+  url: string
+  events: string[]
+  secret: string
+  active: boolean
+}
+
+const webhooks: Map<string, Webhook> = new Map()
+
+app.post('/api/v1/admin/webhooks', adminAuth, (req, res) => {
+  const { url, events } = req.body as { url: string; events: string[] }
+  if (!url || !events?.length) { res.status(400).json({ error: 'Missing url or events' }); return }
+  const id = crypto.randomUUID()
+  const secret = crypto.randomBytes(16).toString('hex')
+  webhooks.set(id, { id, url, events, secret, active: true })
+  res.json({ id, secret })
+})
+
+app.get('/api/v1/admin/webhooks', adminAuth, (_req, res) => {
+  res.json({ data: Array.from(webhooks.values()).map((w) => ({ ...w, secret: w.secret.slice(0, 8) + '...' })) })
+})
+
+app.delete('/api/v1/admin/webhooks/:id', adminAuth, (req, res) => {
+  webhooks.delete(req.params.id)
+  res.json({ success: true })
+})
+
+// ─── Public API Endpoints ──────────────────────────────────────
 app.get('/api/v1/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: Date.now() })
 })
@@ -38,34 +126,22 @@ app.get('/api/v1/pools', (req, res) => {
 
 app.get('/api/v1/pools/:id', (req, res) => {
   const id = parseInt(req.params.id, 10)
-  if (isNaN(id)) {
-    res.status(400).json({ error: 'Invalid pool ID' })
-    return
-  }
+  if (isNaN(id)) { res.status(400).json({ error: 'Invalid pool ID' }); return }
   const pool = getPoolById(id)
-  if (!pool) {
-    res.status(404).json({ error: 'Pool not found' })
-    return
-  }
+  if (!pool) { res.status(404).json({ error: 'Pool not found' }); return }
   res.json(pool)
 })
 
 app.get('/api/v1/pools/:id/supporters', (req, res) => {
   const id = parseInt(req.params.id, 10)
-  if (isNaN(id)) {
-    res.status(400).json({ error: 'Invalid pool ID' })
-    return
-  }
+  if (isNaN(id)) { res.status(400).json({ error: 'Invalid pool ID' }); return }
   const supporters = getSupportersByPool(id)
   res.json({ data: supporters })
 })
 
 app.get('/api/v1/pools/:id/events', (req, res) => {
   const id = parseInt(req.params.id, 10)
-  if (isNaN(id)) {
-    res.status(400).json({ error: 'Invalid pool ID' })
-    return
-  }
+  if (isNaN(id)) { res.status(400).json({ error: 'Invalid pool ID' }); return }
   const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 50
   const events = getEvents(id, undefined, limit)
   res.json({ data: events })
@@ -88,12 +164,36 @@ app.get('/api/v1/events', (req, res) => {
   res.json({ data: events })
 })
 
-export { app }
+// ─── Webhook Dispatch ──────────────────────────────────────────
+export async function dispatchWebhooks(eventType: string, poolId: number, data: any) {
+  const payload = JSON.stringify({ event_type: eventType, pool_id: poolId, data, timestamp: Date.now() })
+
+  for (const [id, webhook] of webhooks) {
+    if (!webhook.active) continue
+    if (!webhook.events.includes(eventType) && !webhook.events.includes('*')) continue
+
+    const signature = crypto.createHmac('sha256', webhook.secret).update(payload).digest('hex')
+
+    fetch(webhook.url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-KindlePool-Signature': signature,
+        'X-KindlePool-Event': eventType,
+      },
+      body: payload,
+    }).catch((err) => {
+      console.error(`Webhook ${id} (${webhook.url}) failed:`, err.message)
+    })
+  }
+}
+
+export { app, generateApiKey }
 
 export function startApi() {
   app.listen(PORT, () => {
     console.log(`KindlePool API running on http://localhost:${PORT}`)
-    console.log(`  Health:  http://localhost:${PORT}/api/v1/health`)
-    console.log(`  Pools:   http://localhost:${PORT}/api/v1/pools`)
+    console.log(`  Admin key: ${ADMIN_KEY.slice(0, 12)}...`)
+    if (DEV_API_KEY) console.log('  Dev API key configured')
   })
 }
