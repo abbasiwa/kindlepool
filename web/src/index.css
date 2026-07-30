@@ -1,0 +1,196 @@
+@import "tailwindcss";
+
+/* ─── Design System ───────────────────────────────────────────
+   Neo-Brutalism Lite · Organic Modernism · Tactile Minimal UI
+   Cream aesthetics. No cyberpunk, no stark grids, no heavy shadows.
+   ───────────────────────────────────────────────────────────── */
+
+@theme {
+  /* ─── Light Mode ─── */
+  --color-cream-50: #FFFDF9;
+  --color-cream-100: #FFF8F0;
+  --color-cream-200: #FAF0E6;
+  --color-cream-300: #F0E6D8;
+  --color-cream-400: #E8D5C4;
+  --color-cream-500: #D4C5B5;
+
+  --color-warm-100: #E8D5C4;
+  --color-warm-200: #D4A574;
+  --color-warm-300: #C4956A;
+  --color-warm-400: #B8845A;
+  --color-warm-500: #A0704A;
+
+  --color-muted-100: #8A7A6A;
+  --color-muted-200: #6B5D50;
+  --color-muted-300: #5A4E42;
+
+  --color-text-light: #2D2520;
+  --color-text-dark: #1A1614;
+
+  /* ─── Surfaces ─── */
+  --color-surface: var(--color-cream-100);
+  --color-surface-alt: var(--color-cream-200);
+  --color-surface-elevated: var(--color-cream-50);
+
+  /* ─── Interaction Colors ─── */
+  --color-accent: var(--color-warm-300);
+  --color-accent-hover: var(--color-warm-400);
+  --color-accent-soft: var(--color-warm-100);
+
+  /* ─── Feedback ─── */
+  --color-success: #8BC4A0;
+  --color-error: #D49A9A;
+  --color-warning: #D4C46A;
+  --color-info: #8AB8D4;
+
+  /* ─── Typography ─── */
+  --font-sans: 'Nunito', 'Quicksand', 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-serif: 'Lora', 'Merriweather', Georgia, serif;
+
+  --text-sm: clamp(0.875rem, 0.8rem + 0.25vw, 1rem);
+  --text-base: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
+  --text-lg: clamp(1.125rem, 1rem + 0.5vw, 1.375rem);
+  --text-xl: clamp(1.25rem, 1.1rem + 0.75vw, 1.75rem);
+  --text-2xl: clamp(1.5rem, 1.25rem + 1vw, 2.25rem);
+  --text-3xl: clamp(1.875rem, 1.5rem + 1.5vw, 3rem);
+
+  /* ─── Radii ─── */
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+
+  /* ─── Shadows (subtle, no heavy shadows) ─── */
+  --shadow-tactile: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03);
+  --shadow-lift: 0 4px 12px rgba(0,0,0,0.05), 0 2px 4px rgba(0,0,0,0.03);
+  --shadow-modal: 0 8px 30px rgba(0,0,0,0.08);
+
+  /* ─── Spacing ─── */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-24: 6rem;
+
+  /* ─── Transitions ─── */
+  --transition-fast: 150ms ease-out;
+  --transition-normal: 250ms ease-out;
+  --transition-slow: 400ms ease-out;
+}
+
+/* ─── Dark Mode ─── */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-surface: #1A1614;
+    --color-surface-alt: #2D2520;
+    --color-surface-elevated: #3A3028;
+
+    --color-cream-50: #1A1614;
+    --color-cream-100: #2D2520;
+    --color-cream-200: #3A3028;
+    --color-cream-300: #4A3D32;
+    --color-cream-400: #5A4D40;
+    --color-cream-500: #6B5D50;
+
+    --color-warm-100: #5A4D40;
+    --color-warm-200: #B8845A;
+    --color-warm-300: #C4956A;
+    --color-warm-400: #D4A574;
+    --color-warm-500: #E0B888;
+
+    --color-muted-100: #8A7A6A;
+    --color-muted-200: #A09080;
+    --color-muted-300: #B8A898;
+
+    --color-text-light: #E8DDD0;
+    --color-text-dark: #F0E8DC;
+
+    --color-accent: var(--color-warm-400);
+    --color-accent-hover: var(--color-warm-500);
+
+    --color-success: #6BA880;
+    --color-error: #B07A7A;
+    --color-warning: #B8A84A;
+    --color-info: #6A98B4;
+  }
+}
+
+/* ─── Base Styles ─── */
+html {
+  font-family: var(--font-sans);
+  color: var(--color-text-light);
+  background: var(--color-surface);
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* ─── Animations ─── */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(100%); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.animate-fade-in { animation: fade-in var(--transition-normal) both; }
+.animate-slide-up { animation: slide-up var(--transition-slow) both; }
+.animate-scale-in { animation: scale-in var(--transition-normal) both; }
+.animate-shimmer {
+  background: linear-gradient(90deg, var(--color-cream-200) 25%, var(--color-cream-300) 50%, var(--color-cream-200) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ─── Scrollbar ─── */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-surface);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-cream-400);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-warm-200);
+}
