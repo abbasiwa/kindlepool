@@ -45,6 +45,7 @@ export function Header() {
           <Link to="/explore" className="text-sm text-muted-100 hover:text-text-light transition-colors">{t('nav.explore')}</Link>
           <Link to="/create" className="text-sm text-muted-100 hover:text-text-light transition-colors">{t('nav.create')}</Link>
           <Link to="/dashboard" className="text-sm text-muted-100 hover:text-text-light transition-colors">{t('nav.dashboard')}</Link>
+          <Link to="/creator" className="text-sm text-warm-300 hover:text-warm-400 font-medium transition-colors">Studio</Link>
           <Link to="/add-funds" className="text-sm text-warm-300 hover:text-warm-400 font-medium transition-colors">{t('nav.addFunds')}</Link>
         </nav>
 

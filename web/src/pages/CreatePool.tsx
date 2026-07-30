@@ -4,7 +4,8 @@ import { Button, Input, Card } from '../components/ui'
 import { useWallet } from '../lib/wallet'
 import { useToast } from '../lib/toast'
 import { useNavigate } from 'react-router-dom'
-import { Upload, Check } from 'lucide-react'
+import { POOL_TEMPLATES, type PoolTemplate } from '../lib/pool-templates'
+import { Upload, Check, Sparkles } from 'lucide-react'
 
 export function CreatePool() {
   const { connected } = useWallet()
@@ -12,22 +13,26 @@ export function CreatePool() {
   const navigate = useNavigate()
   const fileRef = useRef<HTMLInputElement>(null)
 
-  const [step, setStep] = useState(1)
+  const [step, setStep] = useState(0)
+  const [selectedTemplate, setSelectedTemplate] = useState<PoolTemplate | null>(null)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [category, setCategory] = useState('art')
   const [goal, setGoal] = useState('')
   const [deadline, setDeadline] = useState(7)
   const [coverFile, setCoverFile] = useState<File | null>(null)
+  const [milestones, setMilestones] = useState<{ label: string; percent: number }[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
 
+  const displayStep = selectedTemplate ? step + 1 : step
+
   const errors: Record<string, string> = {}
-  if (step === 1) {
+  if (displayStep === 1) {
     if (title.length > 100) errors.title = 'Title must be under 100 characters'
     if (description.length > 2000) errors.description = 'Description must be under 2000 characters'
   }
-  if (step === 2) {
+  if (displayStep === 2) {
     if (!goal || Number(goal) <= 0) errors.goal = 'Enter a valid goal amount'
     if (Number(goal) > 1000000) errors.goal = 'Goal cannot exceed 1,000,000 USDC'
   }
@@ -72,18 +77,83 @@ export function CreatePool() {
       </div>
 
       <div className="flex items-center justify-center gap-2">
-        {[1, 2, 3].map((s) => (
+        {[0, 1, 2, 3].map((s) => (
           <div key={s} className="flex items-center gap-2">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${step >= s ? 'bg-warm-300 text-cream-50' : 'bg-cream-200 text-muted-100'}`}>
-              {s}
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${displayStep >= s ? 'bg-warm-300 text-cream-50' : 'bg-cream-200 text-muted-100'}`}>
+              {s === 0 ? <Sparkles size={14} /> : s}
             </div>
-            {s < 3 && <div className={`w-12 h-0.5 rounded transition-colors ${step > s ? 'bg-warm-300' : 'bg-cream-300'}`} />}
+            {s < 3 && <div className={`w-12 h-0.5 rounded transition-colors ${displayStep > s ? 'bg-warm-300' : 'bg-cream-300'}`} />}
           </div>
         ))}
       </div>
 
       <Card className="space-y-6">
-        {step === 1 && (
+        {/* Step 0: Template Selection */}
+        {step === 0 && !selectedTemplate && (
+          <motion.div key="s0" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+            <h2 className="text-xl font-bold">Choose a Template</h2>
+            <p className="text-sm text-muted-100">Start with a pre-configured template or create a custom pool.</p>
+            <div className="grid grid-cols-2 gap-3">
+              {POOL_TEMPLATES.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => {
+                    setSelectedTemplate(t)
+                    setCategory(t.category)
+                    setGoal(String(t.defaultGoal))
+                    setDeadline(t.defaultDeadline)
+                    setMilestones(t.suggestedMilestones)
+                    if (t.id !== 'custom') setDescription('')
+                    setStep(1)
+                  }}
+                  className="text-left p-4 rounded-xl bg-cream-200 hover:bg-cream-300 transition-colors space-y-2"
+                >
+                  <span className="text-2xl">{t.icon}</span>
+                  <h3 className="font-medium text-sm">{t.name}</h3>
+                  <p className="text-xs text-muted-100">{t.description}</p>
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
+        {step === 0 && selectedTemplate && (
+          <motion.div key="s0b" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">{selectedTemplate.icon}</span>
+              <div>
+                <h2 className="text-xl font-bold">{selectedTemplate.name}</h2>
+                <button onClick={() => { setSelectedTemplate(null); setStep(0) }} className="text-xs text-muted-100 hover:text-warm-300">
+                  Change template
+                </button>
+              </div>
+            </div>
+
+            {/* Suggested Milestones */}
+            <div className="space-y-2">
+              <h3 className="font-medium text-sm">Suggested Milestones</h3>
+              {milestones.map((m, i) => (
+                <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-cream-200">
+                  <span className="text-xs font-bold text-warm-300 w-6">{i + 1}</span>
+                  <input
+                    value={m.label}
+                    onChange={(e) => {
+                      const updated = [...milestones]
+                      updated[i] = { ...updated[i], label: e.target.value }
+                      setMilestones(updated)
+                    }}
+                    className="flex-1 bg-transparent border-none outline-none text-sm"
+                  />
+                  <span className="text-xs text-muted-100 w-12 text-right">{m.percent}%</span>
+                </div>
+              ))}
+            </div>
+
+            <Button className="w-full" onClick={() => setStep(1)}>Continue</Button>
+          </motion.div>
+        )}
+
+        {displayStep === 1 && selectedTemplate && (
           <motion.div key="s1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
             <h2 className="text-xl font-bold">Project Details</h2>
             <Input label="Title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="What are you creating?" error={errors.title} maxLength={100} />

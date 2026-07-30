@@ -3,6 +3,7 @@ import './i18n'
 import { ThemeProvider } from './lib/theme'
 import { WalletProvider } from './lib/wallet'
 import { NotificationProvider } from './lib/notifications'
+import { CreatorProvider } from './lib/creator'
 import { Header } from './components/Header'
 import { Home } from './pages/Home'
 import { Explore } from './pages/Explore'
@@ -10,6 +11,7 @@ import { PoolDetail } from './pages/PoolDetail'
 import { CreatePool } from './pages/CreatePool'
 import { Dashboard } from './pages/Dashboard'
 import { AddFunds } from './pages/AddFunds'
+import { CreatorAnalytics } from './pages/CreatorAnalytics'
 import { ToastProvider } from './lib/toast'
 import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
@@ -40,6 +42,7 @@ export default function App() {
           <BrowserRouter>
             <ScrollToTop />
             <NotificationProvider>
+            <CreatorProvider>
             <div className="min-h-screen bg-surface text-text-light transition-colors duration-300">
               <Header />
               <main className="max-w-6xl mx-auto px-4 py-8">
@@ -50,10 +53,12 @@ export default function App() {
                   <Route path="/create" element={<CreatePool />} />
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/add-funds" element={<AddFunds />} />
+                  <Route path="/creator" element={<CreatorAnalytics />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>
             </div>
+            </CreatorProvider>
             </NotificationProvider>
           </BrowserRouter>
         </ToastProvider>
