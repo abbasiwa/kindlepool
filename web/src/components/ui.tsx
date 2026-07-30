@@ -29,17 +29,16 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     return (
       <motion.button
         ref={ref}
-        whileTap={{ scale: 0.98 }}
+        whileTap={{ scale: 0.97 }}
         className={`${base} ${variants[variant]} ${sizes[size]} ${className}`}
         disabled={loading || props.disabled}
         {...(props as any)}
       >
         {loading ? (
           <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-        ) : icon ? (
-          <span className="w-4 h-4">{icon}</span>
-        ) : null}
-        {children}
+        ) : (
+          children
+        )}
       </motion.button>
     )
   },
@@ -131,14 +130,14 @@ export function Modal({ open, onClose, children, title }: ModalProps) {
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        transition={{ duration: 0.3 }}
+        transition={{ duration: 0.2 }}
         className="bg-surface rounded-2xl max-w-lg w-full p-6 shadow-modal"
         onClick={(e) => e.stopPropagation()}
       >
         {title && (
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold text-text-light">{title}</h2>
-            <button onClick={onClose} className="p-1 rounded-lg hover:bg-cream-200 transition-colors">
+            <button onClick={onClose} className="p-1 rounded-lg hover:bg-cream-200 transition-colors text-muted-100 hover:text-text-light">
               ✕
             </button>
           </div>
@@ -163,12 +162,12 @@ interface TabsProps {
 
 export function Tabs({ tabs, active, onChange }: TabsProps) {
   return (
-    <div className="flex gap-1 p-1 bg-cream-200 rounded-2xl">
+    <div className="flex gap-1 p-1 bg-cream-200 rounded-2xl overflow-x-auto">
       {tabs.map((tab) => (
         <button
           key={tab.id}
           onClick={() => onChange(tab.id)}
-          className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+          className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
             active === tab.id
               ? 'bg-surface text-text-light shadow-tactile'
               : 'text-muted-100 hover:text-text-light'
@@ -181,39 +180,9 @@ export function Tabs({ tabs, active, onChange }: TabsProps) {
   )
 }
 
-/* ─── Toast ─── */
-interface ToastProps {
-  message: string
-  type?: 'success' | 'error' | 'info'
-  visible: boolean
-  onDismiss: () => void
-}
-
-export function Toast({ message, type = 'info', visible, onDismiss }: ToastProps) {
-  const colors = {
-    success: 'border-success',
-    error: 'border-error',
-    info: 'border-warm-300',
-  }
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: -20 }}
-      animate={visible ? { opacity: 1, y: 0 } : { opacity: 0, y: -20 }}
-      transition={{ duration: 0.3 }}
-      className={`fixed top-4 right-4 z-50 bg-surface border-l-4 ${colors[type]} rounded-xl p-4 shadow-modal max-w-sm`}
-    >
-      <div className="flex items-start gap-3">
-        <p className="text-sm text-text-light flex-1">{message}</p>
-        <button onClick={onDismiss} className="text-muted-100 hover:text-text-light">✕</button>
-      </div>
-    </motion.div>
-  )
-}
-
 /* ─── Skeleton ─── */
 export function Skeleton({ className = '' }: { className?: string }) {
-  return <div className={`animate-shimmer rounded-lg ${className}`} />
+  return <div className={`animate-shimmer rounded-lg min-h-[1em] ${className}`} />
 }
 
 /* ─── Badge ─── */
