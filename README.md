@@ -54,6 +54,39 @@ cargo test -p sponsor-pool --features testutils
 | `finalize(pool_id)` | Settle pool — payout or refund |
 | `get_pool(pool_id)` | View pool state |
 
+## Indexer + API
+
+The off-chain indexer is in `services/indexer/`.
+
+### Setup
+
+```bash
+cd services/indexer
+cp .env.example .env
+# Set KINDPOOL_CONTRACT_ID to your deployed contract address
+npm install
+```
+
+### Run
+
+```bash
+npm run dev        # Development with hot reload
+npm run build      # TypeScript build
+npm run start      # Production
+```
+
+### API Endpoints
+
+| Endpoint | Description |
+|---|---|
+| `GET /api/v1/pools` | List pools (status, creator, sort, pagination) |
+| `GET /api/v1/pools/:id` | Single pool detail |
+| `GET /api/v1/pools/:id/supporters` | Pool supporters list |
+| `GET /api/v1/pools/:id/events` | Pool event history |
+| `GET /api/v1/supporters/:address/pools` | Pools a supporter funded |
+| `GET /api/v1/creators/:address/pools` | Pools a creator created |
+| `GET /api/v1/events` | All events (filterable by type) |
+
 ## Milestones
 
 See [milestone.md](milestone.md) for the full development roadmap (66 sub-milestones across 12 phases).
