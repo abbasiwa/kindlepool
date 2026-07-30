@@ -20,6 +20,8 @@ const WalletContext = createContext<WalletContextType>({
   disconnect: () => {},
   signAndSubmit: async () => null,
   network: 'testnet',
+  emailWallet: null,
+  createEmailWallet: async () => null,
 })
 
 async function getFreighterAddress(): Promise<string | null> {
@@ -89,10 +91,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     return await freighterSignAndSubmit(xdr, network)
   }, [network])
 
-  return (
-  const createEmailWallet = useCallback(async (email: string): Promise<string | null> => {
-    // Simulate Capsule/Turnkey wallet creation
-    // In production: this calls Turnkey API to create a non-custodial wallet
+  const createEmailWallet = useCallback(async (_email: string): Promise<string | null> => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
     const addr = 'G' + Array.from({ length: 55 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
     setEmailWallet(addr)
@@ -100,6 +99,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     return addr
   }, [])
 
+  return (
     <WalletContext.Provider
       value={{
         address,

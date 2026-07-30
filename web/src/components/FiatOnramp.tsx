@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Button, Card, Input } from './ui'
 import { useToast } from '../lib/toast'
@@ -8,7 +8,7 @@ import { CreditCard, Wallet, Mail, Check, Loader } from 'lucide-react'
 type OnrampStep = 'select' | 'amount' | 'processing' | 'done'
 
 export function FiatOnramp() {
-  const { connected, address, connect, createEmailWallet, emailWallet } = useWallet()
+  const { connected, connect, createEmailWallet, emailWallet } = useWallet()
   const { toast } = useToast()
 
   const [step, setStep] = useState<OnrampStep>('select')
@@ -17,8 +17,6 @@ export function FiatOnramp() {
   const [fiatAmount, setFiatAmount] = useState('25')
   const [processing, setProcessing] = useState(false)
   const [txHash, setTxHash] = useState<string | null>(null)
-
-  const moonpayContainer = useRef<HTMLDivElement>(null)
 
   const handleEmailSignup = useCallback(async () => {
     if (!email || !email.includes('@')) {

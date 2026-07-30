@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
+import './i18n'
 import { ThemeProvider } from './lib/theme'
 import { WalletProvider } from './lib/wallet'
+import { NotificationProvider } from './lib/notifications'
 import { Header } from './components/Header'
 import { Home } from './pages/Home'
 import { Explore } from './pages/Explore'
@@ -37,6 +39,7 @@ export default function App() {
         <ToastProvider>
           <BrowserRouter>
             <ScrollToTop />
+            <NotificationProvider>
             <div className="min-h-screen bg-surface text-text-light transition-colors duration-300">
               <Header />
               <main className="max-w-6xl mx-auto px-4 py-8">
@@ -51,6 +54,7 @@ export default function App() {
                 </Routes>
               </main>
             </div>
+            </NotificationProvider>
           </BrowserRouter>
         </ToastProvider>
       </WalletProvider>

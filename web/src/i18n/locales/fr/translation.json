@@ -1,0 +1,176 @@
+{
+  "nav": {
+    "explore": "Explorer",
+    "create": "Créer",
+    "dashboard": "Tableau de bord",
+    "addFunds": "Ajouter des fonds",
+    "connect": "Connecter le portefeuille",
+    "disconnect": "Déconnecter",
+    "connecting": "Connexion..."
+  },
+  "home": {
+    "hero": {
+      "title": "Financez le <1>travail</1>,<br />pas le créateur",
+      "subtitle": "Micro-pools de sponsoring pour créateurs. L'argent est déposé sur Stellar, libéré seulement si la qualité est au rendez-vous, et automatiquement remboursé sinon.",
+      "explore": "Explorer les pools",
+      "create": "Créer un pool"
+    },
+    "features": {
+      "specific": { "title": "Financez un travail spécifique", "desc": "Soutenez un projet particulier, pas un créateur. Votre argent va au travail auquel vous croyez." },
+      "voted": { "title": "Voté par la communauté", "desc": "Les donateurs votent sur la qualité. Les fonds sont libérés seulement si le travail répond aux standards." },
+      "refunds": { "title": "Remboursements automatiques", "desc": "Si l'objectif n'est pas atteint ou le travail refusé, les fonds retournent automatiquement aux donateurs." }
+    },
+    "trending": "Pools populaires",
+    "viewAll": "Voir tout →",
+    "empty": "Pas encore de pools. Soyez le premier à en créer un !",
+    "fund": "Financer",
+    "view": "Voir",
+    "endingSoon": "Bientôt terminé",
+    "daysLeft": "{{days}} jours restants"
+  },
+  "explore": {
+    "title": "Explorer les pools",
+    "search": "Rechercher des pools...",
+    "empty": "Aucun pool trouvé.",
+    "createOne": "Créer un →",
+    "tabs": { "all": "Tous", "open": "Ouverts", "voting": "Vote", "funded": "Financés" },
+    "supporters": "{{count}} donateurs",
+    "daysLeft": "{{days}} jours restants",
+    "endingToday": "Se termine aujourd'hui"
+  },
+  "pool": {
+    "back": "Retour",
+    "notFound": "Pool introuvable",
+    "noPoolId": "Aucun pool avec l'ID {{id}} n'existe.",
+    "goBack": "← Retour",
+    "fundThisPool": "Financer ce pool",
+    "voteOnWork": "Voter sur le travail",
+    "submitWork": "Soumettre le travail",
+    "supporters": "Donateurs ({{count}})",
+    "noSupporters": "Aucun donateur pour le moment.",
+    "submittedWork": "Travail soumis",
+    "workHash": "Hash : {{hash}}",
+    "votingEnds": "Vote termine le : {{date}}",
+    "depositModal": {
+      "title": "Financer le pool",
+      "amount": "Montant (USDC)",
+      "placeholder": "Max {{max}} USDC",
+      "max": "Max",
+      "deposit": "Déposer {{amount}} USDC",
+      "exceedsGoal": "Le montant dépasse l'objectif restant ({{remaining}} USDC)",
+      "validAmount": "Entrez un montant valide"
+    },
+    "voteModal": {
+      "title": "Voter sur le travail",
+      "question": "Ce travail répond-il à la qualité attendue ?",
+      "approve": "Approuver",
+      "reject": "Rejeter"
+    },
+    "submitModal": {
+      "title": "Soumettre le travail",
+      "desc": "Téléchargez le travail terminé pour l'évaluation des donateurs.",
+      "drop": "Glissez-déposez ou cliquez pour télécharger",
+      "submit": "Soumettre pour évaluation"
+    }
+  },
+  "create": {
+    "title": "Créer un pool",
+    "subtitle": "Financez votre prochain projet créatif",
+    "notConnected": "Connectez votre portefeuille pour créer un pool.",
+    "connect": "Connecter le portefeuille",
+    "success": "Pool créé !",
+    "redirecting": "Redirection vers l'exploration...",
+    "steps": { "details": "Détails du projet", "funding": "Financement", "review": "Réviser et confirmer" },
+    "form": {
+      "title": "Titre",
+      "titlePlaceholder": "Que créez-vous ?",
+      "titleError": "Le titre doit faire moins de 100 caractères",
+      "description": "Description",
+      "descriptionPlaceholder": "Décrivez votre projet...",
+      "descriptionError": "La description doit faire moins de 2000 caractères",
+      "category": "Catégorie",
+      "cover": "Image de couverture (optionnelle)",
+      "upload": "Cliquez pour télécharger une image",
+      "goal": "Objectif (USDC)",
+      "goalPlaceholder": "De quoi avez-vous besoin ?",
+      "goalError": "L'objectif ne peut pas dépasser 1 000 000 USDC",
+      "validGoal": "Entrez un objectif valide",
+      "deadline": "Date limite",
+      "back": "Retour",
+      "continue": "Continuer",
+      "create": "Créer le pool",
+      "creating": "Création du pool..."
+    },
+    "review": {
+      "title": "Titre", "category": "Catégorie", "goal": "Objectif", "deadline": "Date limite", "cover": "Couverture",
+      "agree": "En créant ce pool, vous acceptez de livrer le travail promis. Les fonds sont libérés seulement après l'approbation des donateurs."
+    },
+    "deadlines": { "3": "3 jours", "7": "7 jours", "14": "14 jours", "30": "30 jours" },
+    "categories": { "art": "Art", "writing": "Écriture", "music": "Musique", "code": "Code", "other": "Autre" }
+  },
+  "dashboard": {
+    "title": "Tableau de bord",
+    "notConnected": "Connectez votre portefeuille pour voir votre tableau de bord.",
+    "stats": { "created": "Créés", "funded": "Financés", "successRate": "Taux de succès" },
+    "tabs": { "created": "Créés", "funded": "Financés", "history": "Historique" },
+    "empty": { "created": "Aucun pool créé pour le moment.", "funded": "Aucun pool financé pour le moment.", "history": "Aucun pool terminé pour le moment." },
+    "supporters": "{{count}} donateurs",
+    "contributed": "Contribué : {{amount}} USDC"
+  },
+  "addFunds": {
+    "title": "Ajouter des fonds",
+    "subtitle": "Achetez des USDC par carte ou virement",
+    "select": {
+      "title": "Choisissez comment ajouter des fonds :",
+      "existing": "Portefeuille existant",
+      "existingDesc": "Connectez Freighter et achetez des cryptos",
+      "email": "Email (pas de portefeuille)",
+      "emailDesc": "Créez un portefeuille avec votre email"
+    },
+    "email": {
+      "label": "Adresse email", "placeholder": "vous@exemple.com",
+      "create": "Créer un portefeuille", "creating": "Création du portefeuille..."
+    },
+    "purchase": {
+      "label": "Montant (USD)", "placeholder": "Entrez le montant en USD",
+      "fee": "Vous recevrez ≈ {{amount}} USDC (frais de 3 %)",
+      "buy": "Acheter ${{amount}} USDC",
+      "processing": "Traitement...",
+      "success": "Fonds ajoutés !",
+      "successDesc": "{{amount}} USDC est disponible dans votre portefeuille.",
+      "failed": "Achat échoué. Réessayez.",
+      "connect": "Connectez le portefeuille pour continuer",
+      "change": "← Changer de méthode"
+    },
+    "done": { "again": "Ajouter à nouveau" }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "Aucune notification pour le moment.",
+    "markAllRead": "Tout marquer comme lu",
+    "items": {
+      "deposit": "{{amount}} USDC déposés dans \"{{pool}}\"",
+      "goalReached": "Objectif atteint pour \"{{pool}}\" !",
+      "workSubmitted": "Travail soumis pour \"{{pool}}\"",
+      "voteCast": "Vote émis sur \"{{pool}}\"",
+      "poolPaid": "{{pool}} — fonds libérés au créateur !",
+      "poolRefunded": "{{pool}} — donateurs remboursés.",
+      "poolExpired": "Le délai de {{pool}} a expiré sans atteindre l'objectif."
+    }
+  },
+  "common": {
+    "loading": "Chargement...", "error": "Quelque chose s'est mal passé.", "retry": "Réessayer",
+    "close": "Fermer", "save": "Enregistrer", "cancel": "Annuler",
+    "delete": "Supprimer", "confirm": "Confirmer", "search": "Rechercher",
+    "noResults": "Aucun résultat.", "viewAll": "Tout voir",
+    "showMore": "Afficher plus", "showLess": "Afficher moins"
+  },
+  "theme": { "light": "Clair", "dark": "Sombre", "toggle": "Changer le thème" },
+  "toast": {
+    "walletRequired": "Connectez d'abord le portefeuille",
+    "voted": "Vote {{vote}} !", "approved": "approuvé", "rejected": "rejeté"
+  },
+  "status": {
+    "open": "ouvert", "vote": "vote", "paid": "payé", "expired": "expiré", "awaitingVote": "en attente de vote"
+  }
+}

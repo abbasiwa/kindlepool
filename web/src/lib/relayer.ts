@@ -1,4 +1,4 @@
-const RELAYER_URL = process.env.KINDPOOL_RELAYER_URL ?? 'http://localhost:3002'
+const RELAYER_URL = 'http://localhost:3002'
 
 export interface RelayResult {
   success: boolean

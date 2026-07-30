@@ -1,0 +1,244 @@
+{
+  "nav": {
+    "explore": "Explore",
+    "create": "Create",
+    "dashboard": "Dashboard",
+    "addFunds": "Add Funds",
+    "connect": "Connect Wallet",
+    "disconnect": "Disconnect",
+    "connecting": "Connecting..."
+  },
+  "home": {
+    "hero": {
+      "title": "Fund the <1>work</1>,<br />not the creator",
+      "subtitle": "Micro-sponsor pools for creators. Money pools trustlessly on Stellar, releases only if quality thresholds are met, and auto-refunds otherwise.",
+      "explore": "Explore Pools",
+      "create": "Create a Pool"
+    },
+    "features": {
+      "specific": {
+        "title": "Fund Specific Work",
+        "desc": "Support a particular project, not a creator. Your money goes to the work you believe in."
+      },
+      "voted": {
+        "title": "Community Voted",
+        "desc": "Supporters vote on quality. Funds release only if the work meets the community standard."
+      },
+      "refunds": {
+        "title": "Automated Refunds",
+        "desc": "If the goal isn't met or work is rejected, funds automatically return to supporters."
+      }
+    },
+    "trending": "Trending Pools",
+    "viewAll": "View all →",
+    "empty": "No pools yet. Be the first to create one!",
+    "fund": "Fund",
+    "view": "View",
+    "endingSoon": "Ending soon",
+    "daysLeft": "{{days}} days left"
+  },
+  "explore": {
+    "title": "Explore Pools",
+    "search": "Search pools...",
+    "empty": "No pools found.",
+    "createOne": "Create one →",
+    "tabs": {
+      "all": "All",
+      "open": "Open",
+      "voting": "Voting",
+      "funded": "Funded"
+    },
+    "supporters": "{{count}} supporters",
+    "daysLeft": "{{days}} days left",
+    "endingToday": "Ending today"
+  },
+  "pool": {
+    "back": "Back",
+    "notFound": "Pool not found",
+    "noPoolId": "No pool with ID {{id}} exists.",
+    "goBack": "← Go back",
+    "fundThisPool": "Fund This Pool",
+    "voteOnWork": "Vote on Work",
+    "submitWork": "Submit Work",
+    "supporters": "Supporters ({{count}})",
+    "noSupporters": "No supporters yet.",
+    "submittedWork": "Submitted Work",
+    "workHash": "Hash: {{hash}}",
+    "votingEnds": "Voting ends: {{date}}",
+    "depositModal": {
+      "title": "Fund Pool",
+      "amount": "Amount (USDC)",
+      "placeholder": "Max {{max}} USDC",
+      "max": "Max",
+      "deposit": "Deposit {{amount}} USDC",
+      "exceedsGoal": "Amount exceeds remaining goal ({{remaining}} USDC)",
+      "validAmount": "Enter a valid amount"
+    },
+    "voteModal": {
+      "title": "Vote on Work",
+      "question": "Does this work meet the quality you expected?",
+      "approve": "Approve",
+      "reject": "Reject"
+    },
+    "submitModal": {
+      "title": "Submit Work",
+      "desc": "Upload the completed work for supporter review.",
+      "drop": "Drag & drop or click to upload",
+      "submit": "Submit for Review"
+    }
+  },
+  "create": {
+    "title": "Create a Pool",
+    "subtitle": "Fund your next creative project",
+    "notConnected": "Connect your wallet to create a funding pool.",
+    "connect": "Connect Wallet",
+    "success": "Pool Created!",
+    "redirecting": "Redirecting to explore...",
+    "steps": {
+      "details": "Project Details",
+      "funding": "Funding",
+      "review": "Review & Confirm"
+    },
+    "form": {
+      "title": "Title",
+      "titlePlaceholder": "What are you creating?",
+      "titleError": "Title must be under 100 characters",
+      "description": "Description",
+      "descriptionPlaceholder": "Describe your project...",
+      "descriptionError": "Description must be under 2000 characters",
+      "category": "Category",
+      "cover": "Cover Image (optional)",
+      "upload": "Click to upload cover image",
+      "goal": "Goal (USDC)",
+      "goalPlaceholder": "How much do you need?",
+      "goalError": "Goal cannot exceed 1,000,000 USDC",
+      "validGoal": "Enter a valid goal amount",
+      "deadline": "Deadline",
+      "back": "Back",
+      "continue": "Continue",
+      "create": "Create Pool",
+      "creating": "Creating Pool..."
+    },
+    "review": {
+      "title": "Title",
+      "category": "Category",
+      "goal": "Goal",
+      "deadline": "Deadline",
+      "cover": "Cover",
+      "agree": "By creating this pool, you agree to deliver the promised work. Funds release only after supporter approval."
+    },
+    "deadlines": {
+      "3": "3 days",
+      "7": "7 days",
+      "14": "14 days",
+      "30": "30 days"
+    },
+    "categories": {
+      "art": "Art",
+      "writing": "Writing",
+      "music": "Music",
+      "code": "Code",
+      "other": "Other"
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "notConnected": "Connect your wallet to view your dashboard.",
+    "stats": {
+      "created": "Created",
+      "funded": "Funded",
+      "successRate": "Success Rate"
+    },
+    "tabs": {
+      "created": "Created",
+      "funded": "Funded",
+      "history": "History"
+    },
+    "empty": {
+      "created": "No pools created yet.",
+      "funded": "No pools funded yet.",
+      "history": "No completed pools yet."
+    },
+    "supporters": "{{count}} supporters",
+    "contributed": "Contributed: {{amount}} USDC"
+  },
+  "addFunds": {
+    "title": "Add Funds",
+    "subtitle": "Buy USDC with your card or bank",
+    "select": {
+      "title": "Choose how to add funds:",
+      "existing": "Existing Wallet",
+      "existingDesc": "Connect Freighter and buy crypto",
+      "email": "Email (No Wallet Needed)",
+      "emailDesc": "Create a wallet with just your email"
+    },
+    "email": {
+      "label": "Email Address",
+      "placeholder": "you@example.com",
+      "create": "Create Wallet",
+      "creating": "Creating Wallet..."
+    },
+    "purchase": {
+      "label": "Amount (USD)",
+      "placeholder": "Enter amount in USD",
+      "fee": "You'll receive ≈ {{amount}} USDC (3% fee)",
+      "buy": "Buy ${{amount}} USDC",
+      "processing": "Processing...",
+      "success": "Funds Added!",
+      "successDesc": "{{amount}} USDC is available in your wallet.",
+      "failed": "Purchase failed. Try again.",
+      "connect": "Connect Wallet to Continue",
+      "change": "← Change method"
+    },
+    "done": {
+      "again": "Fund Again"
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "No notifications yet.",
+    "markAllRead": "Mark all read",
+    "items": {
+      "deposit": "Deposited {{amount}} USDC to \"{{pool}}\"",
+      "goalReached": "Goal reached for \"{{pool}}\"!",
+      "workSubmitted": "Work submitted for \"{{pool}}\"",
+      "voteCast": "Vote cast on \"{{pool}}\"",
+      "poolPaid": "{{pool}} — funds released to creator!",
+      "poolRefunded": "{{pool}} — supporters refunded.",
+      "poolExpired": "{{pool}} deadline passed without goal met."
+    }
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Something went wrong.",
+    "retry": "Retry",
+    "close": "Close",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "confirm": "Confirm",
+    "search": "Search",
+    "noResults": "No results found.",
+    "viewAll": "View all",
+    "showMore": "Show more",
+    "showLess": "Show less"
+  },
+  "theme": {
+    "light": "Light",
+    "dark": "Dark",
+    "toggle": "Toggle theme"
+  },
+  "toast": {
+    "walletRequired": "Connect wallet first",
+    "voted": "Voted {{vote}}!",
+    "approved": "approved",
+    "rejected": "rejected"
+  },
+  "status": {
+    "open": "open",
+    "vote": "vote",
+    "paid": "paid",
+    "expired": "expired",
+    "awaitingVote": "awaiting vote"
+  }
+}

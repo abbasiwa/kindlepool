@@ -1,0 +1,176 @@
+{
+  "nav": {
+    "explore": "Explorar",
+    "create": "Crear",
+    "dashboard": "Panel",
+    "addFunds": "Añadir Fondos",
+    "connect": "Conectar Billetera",
+    "disconnect": "Desconectar",
+    "connecting": "Conectando..."
+  },
+  "home": {
+    "hero": {
+      "title": "Financia el <1>trabajo</1>,<br />no al creador",
+      "subtitle": "Micro-pools de patrocinio para creadores. El dinero se acumula en Stellar, se libera solo si se cumplen los estándares de calidad y se reembolsa automáticamente en caso contrario.",
+      "explore": "Explorar Pools",
+      "create": "Crear un Pool"
+    },
+    "features": {
+      "specific": { "title": "Financia Trabajo Específico", "desc": "Apoya un proyecto en particular, no a un creador. Tu dinero va al trabajo en el que crees." },
+      "voted": { "title": "Votado por la Comunidad", "desc": "Los patrocinadores votan sobre la calidad. Los fondos se liberan solo si el trabajo cumple con el estándar." },
+      "refunds": { "title": "Reembolsos Automáticos", "desc": "Si no se alcanza la meta o se rechaza el trabajo, los fondos regresan automáticamente." }
+    },
+    "trending": "Pools Populares",
+    "viewAll": "Ver todos →",
+    "empty": "Aún no hay pools. ¡Sé el primero en crear uno!",
+    "fund": "Financiar",
+    "view": "Ver",
+    "endingSoon": "Termina pronto",
+    "daysLeft": "{{days}} días restantes"
+  },
+  "explore": {
+    "title": "Explorar Pools",
+    "search": "Buscar pools...",
+    "empty": "No se encontraron pools.",
+    "createOne": "Crear uno →",
+    "tabs": { "all": "Todos", "open": "Abiertos", "voting": "Votación", "funded": "Financiados" },
+    "supporters": "{{count}} patrocinadores",
+    "daysLeft": "{{days}} días restantes",
+    "endingToday": "Termina hoy"
+  },
+  "pool": {
+    "back": "Volver",
+    "notFound": "Pool no encontrado",
+    "noPoolId": "No existe un pool con ID {{id}}.",
+    "goBack": "← Volver",
+    "fundThisPool": "Financiar este Pool",
+    "voteOnWork": "Votar Trabajo",
+    "submitWork": "Entregar Trabajo",
+    "supporters": "Patrocinadores ({{count}})",
+    "noSupporters": "Aún no hay patrocinadores.",
+    "submittedWork": "Trabajo Entregado",
+    "workHash": "Hash: {{hash}}",
+    "votingEnds": "Votación termina: {{date}}",
+    "depositModal": {
+      "title": "Financiar Pool",
+      "amount": "Monto (USDC)",
+      "placeholder": "Máx {{max}} USDC",
+      "max": "Máx",
+      "deposit": "Depositar {{amount}} USDC",
+      "exceedsGoal": "El monto excede la meta restante ({{remaining}} USDC)",
+      "validAmount": "Ingresa un monto válido"
+    },
+    "voteModal": {
+      "title": "Votar Trabajo",
+      "question": "¿Este trabajo cumple con la calidad que esperabas?",
+      "approve": "Aprobar",
+      "reject": "Rechazar"
+    },
+    "submitModal": {
+      "title": "Entregar Trabajo",
+      "desc": "Sube el trabajo completado para revisión de patrocinadores.",
+      "drop": "Arrastra o haz clic para subir",
+      "submit": "Entregar para Revisión"
+    }
+  },
+  "create": {
+    "title": "Crear un Pool",
+    "subtitle": "Financia tu próximo proyecto creativo",
+    "notConnected": "Conecta tu billetera para crear un pool.",
+    "connect": "Conectar Billetera",
+    "success": "¡Pool Creado!",
+    "redirecting": "Redirigiendo a explorar...",
+    "steps": { "details": "Detalles del Proyecto", "funding": "Financiamiento", "review": "Revisar y Confirmar" },
+    "form": {
+      "title": "Título",
+      "titlePlaceholder": "¿Qué estás creando?",
+      "titleError": "El título debe tener menos de 100 caracteres",
+      "description": "Descripción",
+      "descriptionPlaceholder": "Describe tu proyecto...",
+      "descriptionError": "La descripción debe tener menos de 2000 caracteres",
+      "category": "Categoría",
+      "cover": "Imagen de Portada (opcional)",
+      "upload": "Haz clic para subir imagen",
+      "goal": "Meta (USDC)",
+      "goalPlaceholder": "¿Cuánto necesitas?",
+      "goalError": "La meta no puede exceder 1,000,000 USDC",
+      "validGoal": "Ingresa una meta válida",
+      "deadline": "Plazo",
+      "back": "Atrás",
+      "continue": "Continuar",
+      "create": "Crear Pool",
+      "creating": "Creando Pool..."
+    },
+    "review": {
+      "title": "Título", "category": "Categoría", "goal": "Meta", "deadline": "Plazo", "cover": "Portada",
+      "agree": "Al crear este pool, aceptas entregar el trabajo prometido. Los fondos se liberan solo después de la aprobación de los patrocinadores."
+    },
+    "deadlines": { "3": "3 días", "7": "7 días", "14": "14 días", "30": "30 días" },
+    "categories": { "art": "Arte", "writing": "Escritura", "music": "Música", "code": "Código", "other": "Otro" }
+  },
+  "dashboard": {
+    "title": "Panel",
+    "notConnected": "Conecta tu billetera para ver tu panel.",
+    "stats": { "created": "Creados", "funded": "Financiados", "successRate": "Tasa de Éxito" },
+    "tabs": { "created": "Creados", "funded": "Financiados", "history": "Historial" },
+    "empty": { "created": "Aún no has creado pools.", "funded": "Aún no has financiado pools.", "history": "Aún no hay pools completados." },
+    "supporters": "{{count}} patrocinadores",
+    "contributed": "Contribuido: {{amount}} USDC"
+  },
+  "addFunds": {
+    "title": "Añadir Fondos",
+    "subtitle": "Compra USDC con tarjeta o banco",
+    "select": {
+      "title": "Elige cómo añadir fondos:",
+      "existing": "Billetera Existente",
+      "existingDesc": "Conecta Freighter y compra crypto",
+      "email": "Email (Sin Billetera)",
+      "emailDesc": "Crea una billetera solo con tu email"
+    },
+    "email": {
+      "label": "Correo Electrónico", "placeholder": "tu@ejemplo.com",
+      "create": "Crear Billetera", "creating": "Creando Billetera..."
+    },
+    "purchase": {
+      "label": "Monto (USD)", "placeholder": "Ingresa monto en USD",
+      "fee": "Recibirás ≈ {{amount}} USDC (3% comisión)",
+      "buy": "Comprar ${{amount}} USDC",
+      "processing": "Procesando...",
+      "success": "¡Fondos Añadidos!",
+      "successDesc": "{{amount}} USDC está disponible en tu billetera.",
+      "failed": "Compra fallida. Intenta de nuevo.",
+      "connect": "Conectar Billetera para Continuar",
+      "change": "← Cambiar método"
+    },
+    "done": { "again": "Añadir de Nuevo" }
+  },
+  "notifications": {
+    "title": "Notificaciones",
+    "empty": "Aún no hay notificaciones.",
+    "markAllRead": "Marcar todo leído",
+    "items": {
+      "deposit": "Depositaste {{amount}} USDC en \"{{pool}}\"",
+      "goalReached": "¡Meta alcanzada para \"{{pool}}\"!",
+      "workSubmitted": "Trabajo entregado para \"{{pool}}\"",
+      "voteCast": "Voto emitido en \"{{pool}}\"",
+      "poolPaid": "{{pool}} — ¡fondos liberados al creador!",
+      "poolRefunded": "{{pool}} — patrocinadores reembolsados.",
+      "poolExpired": "El plazo de {{pool}} venció sin alcanzar la meta."
+    }
+  },
+  "common": {
+    "loading": "Cargando...", "error": "Algo salió mal.", "retry": "Reintentar",
+    "close": "Cerrar", "save": "Guardar", "cancel": "Cancelar",
+    "delete": "Eliminar", "confirm": "Confirmar", "search": "Buscar",
+    "noResults": "Sin resultados.", "viewAll": "Ver todo",
+    "showMore": "Mostrar más", "showLess": "Mostrar menos"
+  },
+  "theme": { "light": "Claro", "dark": "Oscuro", "toggle": "Cambiar tema" },
+  "toast": {
+    "walletRequired": "Conecta la billetera primero",
+    "voted": "¡Voto {{vote}}!", "approved": "aprobado", "rejected": "rechazado"
+  },
+  "status": {
+    "open": "abierto", "vote": "votación", "paid": "pagado", "expired": "expirado", "awaitingVote": "esperando votación"
+  }
+}

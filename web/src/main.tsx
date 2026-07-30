@@ -3,7 +3,6 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App'
 
-// Register service worker for PWA
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     try {
@@ -13,6 +12,11 @@ if ('serviceWorker' in navigator) {
       console.log('SW registration failed:', e)
     }
   })
+}
+
+// Request notification permission for push (must be user-gesture triggered later)
+if ('Notification' in window && Notification.permission === 'default') {
+  // Don't auto-request — will be triggered by user action in PushNotificationPrompt
 }
 
 createRoot(document.getElementById('root')!).render(
