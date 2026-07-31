@@ -1,6 +1,7 @@
 #![no_std]
 use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, Vec};
 
+mod math;
 mod pool;
 mod types;
 
