@@ -1410,7 +1410,7 @@
               }
             ],
             "data": {
-              "u32": 3
+              "u32": 7
             }
           }
         }
@@ -1435,7 +1435,7 @@
                   "string": "caught panic 'called `Result::unwrap()` on an `Err` value: PoolNotFound' from contract function 'Symbol(finalize)'"
                 },
                 {
-                  "u32": 3
+                  "u32": 7
                 }
               ]
             }
@@ -1497,7 +1497,7 @@
                 {
                   "vec": [
                     {
-                      "u32": 3
+                      "u32": 7
                     }
                   ]
                 }
@@ -1622,21 +1622,11 @@
                 "bytes": "0000000000000000000000000000000000000000000000000000000000000005"
               },
               {
-                "symbol": "vote"
+                "symbol": "finalize"
               }
             ],
             "data": {
-              "vec": [
-                {
-                  "u32": 5
-                },
-                {
-                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOLZM"
-                },
-                {
-                  "bool": false
-                }
-              ]
+              "u32": 5
             }
           }
         }
@@ -1658,16 +1648,10 @@
             "data": {
               "vec": [
                 {
-                  "string": "caught panic 'called `Result::unwrap()` on an `Err` value: PoolNotFound' from contract function 'Symbol(vote)'"
+                  "string": "caught panic 'called `Result::unwrap()` on an `Err` value: PoolNotFound' from contract function 'Symbol(finalize)'"
                 },
                 {
                   "u32": 5
-                },
-                {
-                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOLZM"
-                },
-                {
-                  "bool": false
                 }
               ]
             }
@@ -1724,18 +1708,12 @@
                   "string": "contract try_call failed"
                 },
                 {
-                  "symbol": "vote"
+                  "symbol": "finalize"
                 },
                 {
                   "vec": [
                     {
                       "u32": 5
-                    },
-                    {
-                      "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOLZM"
-                    },
-                    {
-                      "bool": false
                     }
                   ]
                 }
