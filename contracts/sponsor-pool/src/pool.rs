@@ -250,7 +250,8 @@ pub fn create(
         total_deposited: 0,
         deadline,
         status: STATUS_OPEN,
-        work_hash: None,
+        work_hash: metadata_hash.clone(),
+        work_submitted: false,
         vote_deadline: 0,
         yes_votes: 0,
         no_votes: 0,
@@ -363,7 +364,7 @@ pub fn submit_work(env: &Env, pool_id: u32, work_hash: &BytesN<32>) {
         panic_with_error!(env, PoolError::PoolNotOpen);
     }
 
-    if pool.work_hash.is_some() {
+    if pool.work_submitted {
         panic_with_error!(env, PoolError::WorkAlreadySubmitted);
     }
 
@@ -382,7 +383,8 @@ pub fn submit_work(env: &Env, pool_id: u32, work_hash: &BytesN<32>) {
 
     let vote_deadline = now + 604800;
 
-    pool.work_hash = Some(work_hash.clone());
+    pool.work_hash = work_hash.clone();
+    pool.work_submitted = true;
     pool.vote_deadline = vote_deadline;
     pool.status = STATUS_AWAITING_VOTE;
 
@@ -471,7 +473,7 @@ pub fn finalize(env: &Env, pool_id: u32) {
     let goal_met = pool.total_deposited >= pool.goal;
     let approved = pool.yes_votes > pool.no_votes;
 
-    if goal_met && pool.work_hash.is_some() && approved {
+    if goal_met && pool.work_submitted && approved {
         // --- PAYOUT to creator (minus platform fee) ---
         let fee_bps: i128 = env.storage().instance().get(&DataKey::FeeBps).unwrap_or(0i128);
         let fee = if fee_bps > 0 {
@@ -1046,7 +1048,7 @@ pub fn cancel_pool(env: &Env, caller: &Address, pool_id: u32) {
     if now >= pool.deadline {
         panic_with_error!(env, PoolError::DeadlinePassed);
     }
-    if pool.work_hash.is_some() {
+    if pool.work_submitted {
         panic_with_error!(env, PoolError::WorkAlreadySubmitted);
     }
 
