@@ -159,12 +159,12 @@
                 },
                 {
                   "i128": {
-                    "hi": 5202551681727990850,
-                    "lo": 2148134102024223809
+                    "hi": 7419412648785509572,
+                    "lo": 7587159503549841706
                   }
                 },
                 {
-                  "u64": 1034823
+                  "u64": 1041785
                 },
                 {
                   "address": "CCABDO7UZXYE4W6GVSEGSNNZTKSLFQGKXXQTH6OX7M7GKZ4Z6CUJNGZN"
@@ -517,7 +517,7 @@
                                 "symbol": "deadline"
                               },
                               "val": {
-                                "u64": 1034823
+                                "u64": 1041785
                               }
                             },
                             {
@@ -526,8 +526,8 @@
                               },
                               "val": {
                                 "i128": {
-                                  "hi": 5202551681727990850,
-                                  "lo": 2148134102024223809
+                                  "hi": 7419412648785509572,
+                                  "lo": 7587159503549841706
                                 }
                               }
                             },
@@ -1628,12 +1628,12 @@
                 },
                 {
                   "i128": {
-                    "hi": 5202551681727990850,
-                    "lo": 2148134102024223809
+                    "hi": 7419412648785509572,
+                    "lo": 7587159503549841706
                   }
                 },
                 {
-                  "u64": 1034823
+                  "u64": 1041785
                 },
                 {
                   "address": "CCABDO7UZXYE4W6GVSEGSNNZTKSLFQGKXXQTH6OX7M7GKZ4Z6CUJNGZN"
@@ -1675,7 +1675,7 @@
                     "symbol": "deadline"
                   },
                   "val": {
-                    "u64": 1034823
+                    "u64": 1041785
                   }
                 },
                 {
@@ -1684,8 +1684,8 @@
                   },
                   "val": {
                     "i128": {
-                      "hi": 5202551681727990850,
-                      "lo": 2148134102024223809
+                      "hi": 7419412648785509572,
+                      "lo": 7587159503549841706
                     }
                   }
                 },
@@ -1846,7 +1846,7 @@
                     "symbol": "deadline"
                   },
                   "val": {
-                    "u64": 1034823
+                    "u64": 1041785
                   }
                 },
                 {
@@ -1855,8 +1855,8 @@
                   },
                   "val": {
                     "i128": {
-                      "hi": 5202551681727990850,
-                      "lo": 2148134102024223809
+                      "hi": 7419412648785509572,
+                      "lo": 7587159503549841706
                     }
                   }
                 },
@@ -2023,16 +2023,19 @@
                 "bytes": "0000000000000000000000000000000000000000000000000000000000000005"
               },
               {
-                "symbol": "cancel_pool"
+                "symbol": "vote"
               }
             ],
             "data": {
               "vec": [
                 {
-                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM"
+                  "u32": 4
                 },
                 {
-                  "u32": 3
+                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMDR4"
+                },
+                {
+                  "bool": true
                 }
               ]
             }
@@ -2056,13 +2059,16 @@
             "data": {
               "vec": [
                 {
-                  "string": "caught panic 'called `Result::unwrap()` on an `Err` value: PoolNotFound' from contract function 'Symbol(obj#475)'"
+                  "string": "caught panic 'called `Result::unwrap()` on an `Err` value: PoolNotFound' from contract function 'Symbol(vote)'"
                 },
                 {
-                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM"
+                  "u32": 4
                 },
                 {
-                  "u32": 3
+                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMDR4"
+                },
+                {
+                  "bool": true
                 }
               ]
             }
@@ -2119,15 +2125,18 @@
                   "string": "contract try_call failed"
                 },
                 {
-                  "symbol": "cancel_pool"
+                  "symbol": "vote"
                 },
                 {
                   "vec": [
                     {
-                      "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM"
+                      "u32": 4
                     },
                     {
-                      "u32": 3
+                      "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMDR4"
+                    },
+                    {
+                      "bool": true
                     }
                   ]
                 }
@@ -2241,7 +2250,7 @@
                     "symbol": "deadline"
                   },
                   "val": {
-                    "u64": 1034823
+                    "u64": 1041785
                   }
                 },
                 {
@@ -2250,8 +2259,8 @@
                   },
                   "val": {
                     "i128": {
-                      "hi": 5202551681727990850,
-                      "lo": 2148134102024223809
+                      "hi": 7419412648785509572,
+                      "lo": 7587159503549841706
                     }
                   }
                 },

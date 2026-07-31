@@ -5,7 +5,7 @@ set -uo pipefail
 # Verifies all 35 entry points against the deployed v3 contract.
 # Produces verification-report.json
 
-CT="CBLY6AB4ONVIIKPFXE42O4N2NWBPCLAOPWYVPAUNZSWQ55OUW4OLBVIB"
+CT="CAQ7VEML2NBZ2NAORFKCD5DOB4OKH4MZ6D6EYZMHTCXRUDALB3W5RY5L"
 USDC="CD2CIUPXUDF3HFTBMKBS7SKAPNUGC4V2ZWJMBA2MG6GY76BKZN7OIYEY"
 DEP="GAPCUR73ENAZ6RVFEUIGEEPKBRJWSVQ7N6INTJ56AYZB4BLNVRPMMFJP"
 ATT="GCCWMTFMGWUBHS75VVPQSORIHGJZW3A57GN5TREFJIXR4JL4L6QFWC3D"
@@ -48,7 +48,7 @@ echo "╚═══════════════════════�
 echo ""
 echo "▶ A. Admin & Security"
 check_ok "get_admin" "A1 get_admin" "GAPCUR73" "$(invoke kindlepool-deployer get_admin 2>&1 | tail -1)"
-check_ok "get_contract_version" "A2 version=2" "2" "$(invoke kindlepool-deployer get_contract_version 2>&1 | tail -1)"
+check_ok "get_contract_version" "A2 version=3" "3" "$(invoke kindlepool-deployer get_contract_version 2>&1 | tail -1)"
 
 NEW_ADMIN=$(stellar keys public-key sup-c)
 invoke kindlepool-deployer propose_admin --caller "$DEP" --new_admin "$NEW_ADMIN" >/dev/null 2>&1
@@ -133,9 +133,17 @@ check_ok "get_total_fees_collected" "E6 fee total" '"[0-9]*"' "$(invoke kindlepo
 # ── F. Dispute views (2 entry points) ───────────────────────────
 echo ""
 echo "▶ F. Dispute Views"
-D1=$(invoke kindlepool-deployer get_dispute --dispute_id 1 2>&1 | tail -1)
-check_ok "get_dispute" "F1 dispute 1" '"pool_id":10' "$D1"
-check_ok "get_arbitrator_votes" "F2 votes" '"vote_for_creator":true' "$(invoke kindlepool-deployer get_arbitrator_votes --dispute_id 1 2>&1 | tail -1)"
+# Raise a fresh dispute on the B-section pool (AWAITING_VOTE)
+invoke kindlepool-deployer raise_dispute --pool_id "$PID" --disputant "$DEP" --reason 0 --evidence_hash "$EVID" >/dev/null 2>&1
+# Dispute IDs are sequential (DisputeCount), not pool IDs — find ours
+DID=""
+for cand in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+  D=$(invoke kindlepool-deployer get_dispute --dispute_id "$cand" 2>/dev/null | tail -1)
+  if echo "$D" | grep -q "pool_id" && echo "$D" | grep -q "$PID"; then DID="$cand"; break; fi
+done
+check_ok "get_dispute" "F1 dispute on pool" '"pool_id":' "$(invoke kindlepool-deployer get_dispute --dispute_id "$DID" 2>&1 | tail -1)"
+invoke kindlepool-deployer resolve_dispute --pool_id "$PID" --caller "$DEP" --dispute_id "$DID" --vote_for_creator true --reason_hash "$EVID" >/dev/null 2>&1
+check_ok "get_arbitrator_votes" "F2 votes" '"vote_for_creator":true' "$(invoke kindlepool-deployer get_arbitrator_votes --dispute_id "$DID" 2>&1 | tail -1)"
 
 # ── Report ──────────────────────────────────────────────────────
 echo ""

@@ -448,7 +448,7 @@ fn test_contract_version() {
     let contract_id = env.register_contract(None, SponsorPool);
     let client = SponsorPoolClient::new(&env, &contract_id);
     client.initialize(&admin, &admin);
-    assert_eq!(client.get_contract_version(), 2);
+    assert_eq!(client.get_contract_version(), 3);
 }
 
 #[test]
@@ -463,4 +463,155 @@ fn test_non_creator_cannot_submit_work_on_used_pool() {
     client.submit_work(&pool_id, &work_hash);
     // Non-creator (supporter) tries to submit — status check fires #5
     client.submit_work(&pool_id, &work_hash);
+}
+
+// ─── Flow Constants Tests (Issue #1, A2) ───────────────────────
+
+#[test]
+fn test_flow_constants_defaults() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = Address::generate(&env);
+    let contract_id = env.register_contract(None, SponsorPool);
+    let client = SponsorPoolClient::new(&env, &contract_id);
+    client.initialize(&admin, &admin);
+
+    // Defaults: 7d vote, 24h notice, 48h cooldown
+    let (vote, notice, cooldown) = client.get_flow_constants();
+    assert_eq!(vote, 604800);
+    assert_eq!(notice, 86400);
+    assert_eq!(cooldown, 172800);
+}
+
+#[test]
+fn test_set_flow_constants_admin() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = Address::generate(&env);
+    let contract_id = env.register_contract(None, SponsorPool);
+    let client = SponsorPoolClient::new(&env, &contract_id);
+    client.initialize(&admin, &admin);
+
+    client.set_flow_constants(&admin, &120, &60, &60);
+    let (vote, notice, cooldown) = client.get_flow_constants();
+    assert_eq!(vote, 120);
+    assert_eq!(notice, 60);
+    assert_eq!(cooldown, 60);
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #32)")]
+fn test_set_flow_constants_non_admin_reverts() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = Address::generate(&env);
+    let attacker = Address::generate(&env);
+    let contract_id = env.register_contract(None, SponsorPool);
+    let client = SponsorPoolClient::new(&env, &contract_id);
+    client.initialize(&admin, &admin);
+
+    client.set_flow_constants(&attacker, &120, &60, &60);
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #39)")]
+fn test_set_flow_constants_below_floor_reverts() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = Address::generate(&env);
+    let contract_id = env.register_contract(None, SponsorPool);
+    let client = SponsorPoolClient::new(&env, &contract_id);
+    client.initialize(&admin, &admin);
+
+    // 30s vote deadline < 60s floor
+    client.set_flow_constants(&admin, &30, &60, &60);
+}
+
+#[test]
+fn test_compressed_pause_cycle() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = Address::generate(&env);
+    let contract_id = env.register_contract(None, SponsorPool);
+    let client = SponsorPoolClient::new(&env, &contract_id);
+    client.initialize(&admin, &admin);
+    env.ledger().set_timestamp(1_000_000);
+
+    // Create pool BEFORE pausing (create is pause-gated)
+    let creator = Address::generate(&env);
+    let supporter = Address::generate(&env);
+    let token_admin = Address::generate(&env);
+    let token = create_token(&env, &token_admin);
+    mint_tokens(&env, &token, &supporter, 1_000_000_000);
+    let deadline = env.ledger().timestamp() + 86400;
+    let pool_id = client.create(&creator, &100_000_000, &deadline, &token, &BytesN::from_array(&env, &[0x01u8; 32]));
+
+    // Compress timelocks for test
+    client.set_flow_constants(&admin, &120, &60, &60);
+    client.schedule_pause(&admin);
+    env.ledger().set_timestamp(env.ledger().timestamp() + 60);
+    client.pause(&admin);
+    assert!(client.get_paused());
+
+    // Deposit blocked while paused
+    let deposit_result = client.try_deposit(&pool_id, &supporter, &50_000_000);
+    assert!(deposit_result.is_err());
+
+    // Unpause after cooldown (60s compressed)
+    env.ledger().set_timestamp(env.ledger().timestamp() + 60);
+    client.unpause(&admin);
+    assert!(!client.get_paused());
+
+    // Deposit works again
+    client.deposit(&pool_id, &supporter, &50_000_000);
+    let pool = client.get_pool(&pool_id).unwrap();
+    assert_eq!(pool.total_deposited, 50_000_000);
+}
+
+#[test]
+fn test_compressed_vote_deadline_allows_quick_finalize() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = Address::generate(&env);
+    let contract_id = env.register_contract(None, SponsorPool);
+    let client = SponsorPoolClient::new(&env, &contract_id);
+    client.initialize(&admin, &admin);
+    env.ledger().set_timestamp(1_000_000);
+
+    // Compress vote deadline to 120s
+    client.set_flow_constants(&admin, &120, &60, &60);
+
+    let creator = Address::generate(&env);
+    let supporter = Address::generate(&env);
+    let token_admin = Address::generate(&env);
+    let token = create_token(&env, &token_admin);
+    mint_tokens(&env, &token, &supporter, 1_000_000_000);
+
+    let pool_id = client.create(&creator, &100_000_000, &(env.ledger().timestamp() + 3600), &token, &BytesN::from_array(&env, &[0x01u8; 32]));
+    client.deposit(&pool_id, &supporter, &100_000_000);
+    client.submit_work(&pool_id, &BytesN::from_array(&env, &[0x02u8; 32]));
+    client.vote(&pool_id, &supporter, &true);
+
+    let pool = client.get_pool(&pool_id).unwrap();
+    assert_eq!(pool.vote_deadline, 1_000_120); // now(1_000_000) + 120
+
+    // Advance past compressed vote deadline
+    env.ledger().set_timestamp(1_000_121);
+    let token_client = token::Client::new(&env, &token);
+    let creator_before = token_client.balance(&creator);
+    client.finalize(&pool_id);
+    let creator_after = token_client.balance(&creator);
+    assert_eq!(creator_after - creator_before, 100_000_000);
+    assert_eq!(client.get_pool(&pool_id).unwrap().status, 2); // PAID
+}
+
+#[test]
+fn test_contract_version_is_three() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = Address::generate(&env);
+    let contract_id = env.register_contract(None, SponsorPool);
+    let client = SponsorPoolClient::new(&env, &contract_id);
+    client.initialize(&admin, &admin);
+    assert_eq!(client.get_contract_version(), 3);
 }

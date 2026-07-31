@@ -156,10 +156,19 @@ pub const DISPUTE_REASON_NO_DELIVERY: u32 = 1;
 
 pub const DISPUTE_FEE_BPS: i128 = 100; // 1% fee for raising dispute
 
-pub const CONTRACT_VERSION: u32 = 2;
+pub const CONTRACT_VERSION: u32 = 3;
 
 pub const PAUSE_NOTICE_SECONDS: u64 = 86400; // 24h notice before pause takes effect
 pub const UNPAUSE_COOLDOWN_SECONDS: u64 = 172800; // 48h cooldown after pause
+pub const VOTE_DEADLINE_SECONDS: u64 = 604800; // 7 days default vote window
+
+// Hard floors for flow constants — never compressible below these.
+// Testnet deployments may set tighter values via set_flow_constants;
+// mainnet deployments MUST keep the production defaults.
+pub const MIN_VOTE_DEADLINE_SECONDS: u64 = 60;
+pub const MIN_PAUSE_NOTICE_SECONDS: u64 = 60;
+pub const MIN_UNPAUSE_COOLDOWN_SECONDS: u64 = 60;
+pub const MAX_FLOW_CONSTANT: u64 = 31_536_000; // 365 days cap
 
 pub const TOPIC_POOL_CREATED: soroban_sdk::Symbol = soroban_sdk::symbol_short!("p_creat");
 pub const TOPIC_DEPOSITED: soroban_sdk::Symbol = soroban_sdk::symbol_short!("p_dep");
@@ -228,6 +237,9 @@ pub enum DataKey {
     Paused,
     PauseNoticeAt,
     PausedAt,
+    FlowVoteDeadline,
+    FlowPauseNotice,
+    FlowUnpauseCooldown,
 }
 
 #[contracttype]

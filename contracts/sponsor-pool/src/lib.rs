@@ -184,4 +184,18 @@ impl SponsorPool {
     pub fn get_contract_version(env: Env) -> u32 {
         pool::get_contract_version(&env)
     }
+
+    pub fn set_flow_constants(
+        env: Env,
+        caller: Address,
+        vote_deadline_seconds: u64,
+        pause_notice_seconds: u64,
+        unpause_cooldown_seconds: u64,
+    ) {
+        pool::set_flow_constants(&env, &caller, vote_deadline_seconds, pause_notice_seconds, unpause_cooldown_seconds);
+    }
+
+    pub fn get_flow_constants(env: Env) -> (u64, u64, u64) {
+        pool::get_flow_constants(&env)
+    }
 }

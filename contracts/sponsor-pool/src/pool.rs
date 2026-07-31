@@ -2,6 +2,58 @@ use soroban_sdk::{panic_with_error, token, Address, BytesN, Env, Vec};
 
 use crate::types::*;
 
+// ─── Flow Constants (timeline compression for testnet) ─────────
+
+pub fn set_flow_constants(
+    env: &Env,
+    caller: &Address,
+    vote_deadline_seconds: u64,
+    pause_notice_seconds: u64,
+    unpause_cooldown_seconds: u64,
+) {
+    caller.require_auth();
+    require_admin(env, caller);
+
+    if vote_deadline_seconds < MIN_VOTE_DEADLINE_SECONDS
+        || vote_deadline_seconds > MAX_FLOW_CONSTANT
+    {
+        panic_with_error!(env, PoolError::InvalidAmount);
+    }
+    if pause_notice_seconds < MIN_PAUSE_NOTICE_SECONDS
+        || pause_notice_seconds > MAX_FLOW_CONSTANT
+    {
+        panic_with_error!(env, PoolError::InvalidAmount);
+    }
+    if unpause_cooldown_seconds < MIN_UNPAUSE_COOLDOWN_SECONDS
+        || unpause_cooldown_seconds > MAX_FLOW_CONSTANT
+    {
+        panic_with_error!(env, PoolError::InvalidAmount);
+    }
+
+    env.storage().instance().set(&DataKey::FlowVoteDeadline, &vote_deadline_seconds);
+    env.storage().instance().set(&DataKey::FlowPauseNotice, &pause_notice_seconds);
+    env.storage().instance().set(&DataKey::FlowUnpauseCooldown, &unpause_cooldown_seconds);
+}
+
+pub fn get_flow_constants(env: &Env) -> (u64, u64, u64) {
+    let vote = env.storage().instance().get(&DataKey::FlowVoteDeadline).unwrap_or(VOTE_DEADLINE_SECONDS);
+    let notice = env.storage().instance().get(&DataKey::FlowPauseNotice).unwrap_or(PAUSE_NOTICE_SECONDS);
+    let cooldown = env.storage().instance().get(&DataKey::FlowUnpauseCooldown).unwrap_or(UNPAUSE_COOLDOWN_SECONDS);
+    (vote, notice, cooldown)
+}
+
+fn flow_vote_deadline(env: &Env) -> u64 {
+    env.storage().instance().get(&DataKey::FlowVoteDeadline).unwrap_or(VOTE_DEADLINE_SECONDS)
+}
+
+fn flow_pause_notice(env: &Env) -> u64 {
+    env.storage().instance().get(&DataKey::FlowPauseNotice).unwrap_or(PAUSE_NOTICE_SECONDS)
+}
+
+fn flow_unpause_cooldown(env: &Env) -> u64 {
+    env.storage().instance().get(&DataKey::FlowUnpauseCooldown).unwrap_or(UNPAUSE_COOLDOWN_SECONDS)
+}
+
 // ─── Admin & Pause Helpers ─────────────────────────────────────
 
 fn get_admin_internal(env: &Env) -> Address {
@@ -75,7 +127,7 @@ pub fn accept_admin(env: &Env, caller: &Address) {
 pub fn schedule_pause(env: &Env, caller: &Address) {
     caller.require_auth();
     require_admin(env, caller);
-    let at = env.ledger().timestamp() + PAUSE_NOTICE_SECONDS;
+    let at = env.ledger().timestamp() + flow_pause_notice(env);
     env.storage().instance().set(&DataKey::PauseNoticeAt, &at);
     env.events().publish(
         (TOPIC_PAUSE_SCHEDULED,),
@@ -104,7 +156,7 @@ pub fn unpause(env: &Env, caller: &Address) {
     require_admin(env, caller);
     let paused_at: u64 = env.storage().instance().get(&DataKey::PausedAt).unwrap_or(0);
     let now = env.ledger().timestamp();
-    if paused_at == 0 || now < paused_at + UNPAUSE_COOLDOWN_SECONDS {
+    if paused_at == 0 || now < paused_at + flow_unpause_cooldown(env) {
         panic_with_error!(env, PoolError::UnpauseCooldownActive);
     }
     env.storage().instance().set(&DataKey::Paused, &false);
@@ -381,7 +433,7 @@ pub fn submit_work(env: &Env, pool_id: u32, work_hash: &BytesN<32>) {
         panic_with_error!(env, PoolError::NotEnoughSupporters);
     }
 
-    let vote_deadline = now + 604800;
+    let vote_deadline = now + flow_vote_deadline(env);
 
     pool.work_hash = work_hash.clone();
     pool.work_submitted = true;
