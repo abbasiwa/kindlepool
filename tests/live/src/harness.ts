@@ -1,6 +1,6 @@
 import { spawnSync } from 'child_process'
 
-export const CT = process.env.KINDPOOL_CONTRACT_ID ?? 'CDLOPJSINRB2ASWI4SAZ3OWTHKSGO6UCFG6SNBAGDYMYSTCP2YFMUYSF'
+export const CT = process.env.KINDPOOL_CONTRACT_ID ?? 'CBFW4U4HO6Z6RPRRNPWA2MWPRXJSSR2MGK2UOQTDDZEZQPOWUIKDKY7W'
 export const USDC = process.env.KINDPOOL_USDC ?? 'CD2CIUPXUDF3HFTBMKBS7SKAPNUGC4V2ZWJMBA2MG6GY76BKZN7OIYEY'
 export const DEP = 'GAPCUR73ENAZ6RVFEUIGEEPKBRJWSVQ7N6INTJ56AYZB4BLNVRPMMFJP'
 export const ATT = 'GCCWMTFMGWUBHS75VVPQSORIHGJZW3A57GN5TREFJIXR4JL4L6QFWC3D'
@@ -62,8 +62,27 @@ export function poolState(poolId: number): any {
   } catch { return {} }
 }
 
+export function usdcInvoke(account: string, ...args: string[]): string {
+  const flat = args.flatMap((a) => a.split(/\s+/).filter(Boolean))
+  const cliArgs = ['contract', 'invoke', '--id', USDC, '--source-account', account, '--network', NET, '--', ...flat]
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const r = spawnSync('stellar', cliArgs, { encoding: 'utf8' })
+    const stdout = (r.stdout ?? '').trim()
+    const stderr = (r.stderr ?? '').trim()
+    const combined = stdout || stderr
+    if (r.status !== 0) {
+      if (combined.includes('WasmVm') || combined.includes('simulation failed') || combined.includes('rate')) {
+        if (attempt < 2) { spawnSync('sleep', ['2']); continue }
+      }
+      return combined
+    }
+    return stdout || (stderr.includes('Success') ? 'Success' : stderr)
+  }
+  return 'ERROR: usdcInvoke retries exhausted'
+}
+
 export function usdcBalance(addr: string): bigint {
-  const out = invoke('kindlepool-deployer', 'balance', `--id ${addr}`)
+  const out = usdcInvoke('kindlepool-deployer', 'balance', `--id ${addr}`)
   const m = out.match(/\d+/)
   return m ? BigInt(m[0]) : 0n
 }

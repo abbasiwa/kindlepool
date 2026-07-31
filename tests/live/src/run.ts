@@ -4,6 +4,8 @@ import { check, createPool, invoke, pace, poolState, results, sleep, usdcBalance
 
 async function s1_happy_path_approve_payout() {
   console.log('▶ S1: Happy path — approve → payout + fee')
+  invoke('kindlepool-deployer', 'set_fee', '--caller GAPCUR73ENAZ6RVFEUIGEEPKBRJWSVQ7N6INTJ56AYZB4BLNVRPMMFJP', '--fee_bps 50', '--treasury GCIRZQ64PDFPI422IHJ3ZQ4LS2QVWF63BNVKPETEC3KDPVG4LOLHMJYA')
+  await pace()
   const pid = createPool(100000000, 120)
   check('S1', 'create', '\\d+', String(pid))
   invoke('attacker', 'deposit', `--pool_id ${pid}`, `--supporter ${'GCCWMTFMGWUBHS75VVPQSORIHGJZW3A57GN5TREFJIXR4JL4L6QFWC3D'}`, '--amount 40000000')
@@ -166,6 +168,8 @@ async function s7_referral_reward() {
 
 async function s8_fee_lifecycle() {
   console.log('▶ S8: Fee lifecycle — collect + withdraw')
+  invoke('kindlepool-deployer', 'set_fee', '--caller GAPCUR73ENAZ6RVFEUIGEEPKBRJWSVQ7N6INTJ56AYZB4BLNVRPMMFJP', '--fee_bps 50', '--treasury GAPCUR73ENAZ6RVFEUIGEEPKBRJWSVQ7N6INTJ56AYZB4BLNVRPMMFJP')
+  await pace()
   const before = invoke('kindlepool-deployer', 'get_total_fees_collected')
   const pid = createPool(200000000, 120)
   invoke('attacker', 'deposit', `--pool_id ${pid}`, '--supporter GCCWMTFMGWUBHS75VVPQSORIHGJZW3A57GN5TREFJIXR4JL4L6QFWC3D', '--amount 200000000')
