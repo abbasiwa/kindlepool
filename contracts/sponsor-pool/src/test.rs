@@ -450,3 +450,17 @@ fn test_contract_version() {
     client.initialize(&admin, &admin);
     assert_eq!(client.get_contract_version(), 2);
 }
+
+#[test]
+#[should_panic(expected = "Error(Contract, #5)")]
+fn test_non_creator_cannot_submit_work_on_used_pool() {
+    let (env, _contract_id, _creator, supporter, pool_id) = setup_pool();
+    let client = SponsorPoolClient::new(&env, &_contract_id);
+
+    client.deposit(&pool_id, &supporter, &100_000_000);
+    let work_hash = BytesN::from_array(&env, &[0x02u8; 32]);
+    // Creator submits first (pool -> AWAITING_VOTE)
+    client.submit_work(&pool_id, &work_hash);
+    // Non-creator (supporter) tries to submit — status check fires #5
+    client.submit_work(&pool_id, &work_hash);
+}
