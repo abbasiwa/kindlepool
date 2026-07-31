@@ -1415,16 +1415,22 @@
                 "bytes": "0000000000000000000000000000000000000000000000000000000000000005"
               },
               {
-                "symbol": "submit_work"
+                "symbol": "deposit"
               }
             ],
             "data": {
               "vec": [
                 {
-                  "u32": 6
+                  "u32": 0
                 },
                 {
-                  "bytes": "0202020202020202020202020202020202020202020202020202020202020202"
+                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMDR4"
+                },
+                {
+                  "i128": {
+                    "hi": 8554836146903580543,
+                    "lo": 14636950105138309075
+                  }
                 }
               ]
             }
@@ -1538,15 +1544,21 @@
                   "string": "contract try_call failed"
                 },
                 {
-                  "symbol": "submit_work"
+                  "symbol": "deposit"
                 },
                 {
                   "vec": [
                     {
-                      "u32": 6
+                      "u32": 0
                     },
                     {
-                      "bytes": "0202020202020202020202020202020202020202020202020202020202020202"
+                      "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMDR4"
+                    },
+                    {
+                      "i128": {
+                        "hi": 8554836146903580543,
+                        "lo": 14636950105138309075
+                      }
                     }
                   ]
                 }
@@ -1923,7 +1935,7 @@
             "data": {
               "vec": [
                 {
-                  "u32": 3
+                  "u32": 7
                 },
                 {
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM"
@@ -1932,7 +1944,7 @@
                   "u32": 1
                 },
                 {
-                  "bool": false
+                  "bool": true
                 },
                 {
                   "bytes": "0404040404040404040404040404040404040404040404040404040404040404"
@@ -2054,7 +2066,7 @@
                 {
                   "vec": [
                     {
-                      "u32": 3
+                      "u32": 7
                     },
                     {
                       "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM"
@@ -2063,7 +2075,7 @@
                       "u32": 1
                     },
                     {
-                      "bool": false
+                      "bool": true
                     },
                     {
                       "bytes": "0404040404040404040404040404040404040404040404040404040404040404"
@@ -2197,7 +2209,7 @@
             "data": {
               "vec": [
                 {
-                  "u32": 6
+                  "u32": 0
                 },
                 {
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM"
@@ -2325,7 +2337,7 @@
                 {
                   "vec": [
                     {
-                      "u32": 6
+                      "u32": 0
                     },
                     {
                       "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM"
@@ -2459,25 +2471,19 @@
                 "bytes": "0000000000000000000000000000000000000000000000000000000000000005"
               },
               {
-                "symbol": "resolve_dispute"
+                "symbol": "vote"
               }
             ],
             "data": {
               "vec": [
                 {
-                  "u32": 4
+                  "u32": 0
                 },
                 {
-                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM"
-                },
-                {
-                  "u32": 1
+                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMDR4"
                 },
                 {
                   "bool": true
-                },
-                {
-                  "bytes": "0404040404040404040404040404040404040404040404040404040404040404"
                 }
               ]
             }
@@ -2591,24 +2597,18 @@
                   "string": "contract try_call failed"
                 },
                 {
-                  "symbol": "resolve_dispute"
+                  "symbol": "vote"
                 },
                 {
                   "vec": [
                     {
-                      "u32": 4
+                      "u32": 0
                     },
                     {
-                      "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM"
-                    },
-                    {
-                      "u32": 1
+                      "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMDR4"
                     },
                     {
                       "bool": true
-                    },
-                    {
-                      "bytes": "0404040404040404040404040404040404040404040404040404040404040404"
                     }
                   ]
                 }

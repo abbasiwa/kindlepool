@@ -693,3 +693,266 @@ fn test_appeal_dispute_nonexistent_clean_error() {
     client.initialize(&admin, &admin);
     client.appeal_dispute(&1, &admin, &1);
 }
+
+// ─── B1 Audit — Error-path & view coverage batch ───────────────
+
+fn fresh_env() -> (Env, Address, Address, Address) {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = Address::generate(&env);
+    let creator = Address::generate(&env);
+    let supporter = Address::generate(&env);
+    (env, admin, creator, supporter)
+}
+
+fn setup_initialized() -> (Env, Address, Address, Address, SponsorPoolClient<'static>) {
+    let (env, admin, creator, supporter) = fresh_env();
+    let contract_id = env.register_contract(None, SponsorPool);
+    let client = SponsorPoolClient::new(&env, &contract_id);
+    client.initialize(&admin, &admin);
+    (env, admin, creator, supporter, client)
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #1)")]
+fn test_withdraw_fees_before_initialize() {
+    let (env, _a, _c, _s) = fresh_env();
+    let contract_id = env.register_contract(None, SponsorPool);
+    let client = SponsorPoolClient::new(&env, &contract_id);
+    client.withdraw_fees(&Address::generate(&env), &1);
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #39)")]
+fn test_withdraw_fees_zero_amount() {
+    let (env, admin, _c, _s, client) = setup_initialized();
+    client.set_fee(&admin, &50, &admin);
+    client.withdraw_fees(&admin, &0);
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #36)")]
+fn test_unpause_before_cooldown() {
+    let (env, admin, _c, _s, client) = setup_initialized();
+    env.ledger().set_timestamp(1_000_000);
+    client.set_flow_constants(&admin, &120, &60, &60);
+    client.schedule_pause(&admin);
+    env.ledger().set_timestamp(1_000_060);
+    client.pause(&admin);
+    client.unpause(&admin); // before 60s cooldown
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #13)")]
+fn test_finalize_before_vote_deadline() {
+    let (env, admin, creator, supporter, client) = setup_initialized();
+    env.ledger().set_timestamp(1_000_000);
+    client.set_flow_constants(&admin, &120, &60, &60);
+    let token_admin = Address::generate(&env);
+    let token = create_token(&env, &token_admin);
+    mint_tokens(&env, &token, &supporter, 1_000_000_000);
+    let pool_id = client.create(&creator, &100_000_000, &(env.ledger().timestamp() + 3600), &token, &BytesN::from_array(&env, &[0x01u8; 32]));
+    client.deposit(&pool_id, &supporter, &100_000_000);
+    client.submit_work(&pool_id, &BytesN::from_array(&env, &[0x02u8; 32]));
+    // vote deadline = 1_000_120; finalize at 1_000_100 (< vote deadline AND < pool deadline)
+    env.ledger().set_timestamp(1_000_100);
+    client.finalize(&pool_id);
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #5)")]
+fn test_double_dispute_raise() {
+    let (env, _admin, creator, supporter, client) = setup_initialized();
+    let token_admin = Address::generate(&env);
+    let token = create_token(&env, &token_admin);
+    mint_tokens(&env, &token, &supporter, 1_000_000_000);
+    mint_tokens(&env, &token, &creator, 1_000_000_000); // disputant must pay 1% fee
+    let pool_id = client.create(&creator, &100_000_000, &(env.ledger().timestamp() + 3600), &token, &BytesN::from_array(&env, &[0x01u8; 32]));
+    client.deposit(&pool_id, &supporter, &100_000_000);
+    client.submit_work(&pool_id, &BytesN::from_array(&env, &[0x02u8; 32]));
+    client.raise_dispute(&pool_id, &creator, &0u32, &BytesN::from_array(&env, &[0x03u8; 32]));
+    client.raise_dispute(&pool_id, &creator, &0u32, &BytesN::from_array(&env, &[0x03u8; 32]));
+}
+
+#[test]
+fn test_view_functions() {
+    let (env, _admin, creator, supporter, client) = setup_initialized();
+    let token_admin = Address::generate(&env);
+    let token = create_token(&env, &token_admin);
+    mint_tokens(&env, &token, &supporter, 1_000_000_000);
+
+    let p1 = client.create(&creator, &100_000_000, &(env.ledger().timestamp() + 3600), &token, &BytesN::from_array(&env, &[0x01u8; 32]));
+    let p2 = client.create(&creator, &50_000_000, &(env.ledger().timestamp() + 3600), &token, &BytesN::from_array(&env, &[0x01u8; 32]));
+    client.deposit(&p1, &supporter, &30_000_000);
+    client.deposit(&p2, &supporter, &20_000_000);
+
+    let by_creator = client.get_pools_by_creator(&creator);
+    assert_eq!(by_creator.len(), 2);
+    let by_supporter = client.get_pools_by_supporter(&supporter);
+    assert_eq!(by_supporter.len(), 2);
+    let sup = client.get_supporter(&p1, &supporter).unwrap();
+    assert_eq!(sup.amount, 30_000_000);
+    assert!(!sup.voted);
+    let stats = client.get_platform_stats();
+    assert_eq!(stats.pool_count, 2);
+    assert_eq!(stats.active_pools, 2);
+    let none = client.get_supporter(&p1, &creator);
+    assert!(none.is_none());
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #5)")]
+fn test_raise_dispute_on_open_pool() {
+    let (env, _admin, creator, supporter, client) = setup_initialized();
+    let token_admin = Address::generate(&env);
+    let token = create_token(&env, &token_admin);
+    mint_tokens(&env, &token, &supporter, 1_000_000_000);
+    let pool_id = client.create(&creator, &100_000_000, &(env.ledger().timestamp() + 3600), &token, &BytesN::from_array(&env, &[0x01u8; 32]));
+    // Pool is OPEN — raise_dispute must fail with #5
+    client.raise_dispute(&pool_id, &creator, &0u32, &BytesN::from_array(&env, &[0x03u8; 32]));
+}
+
+#[test]
+fn test_resolve_dispute_registers_vote() {
+    let (env, _admin, creator, supporter, client) = setup_initialized();
+    let token_admin = Address::generate(&env);
+    let token = create_token(&env, &token_admin);
+    mint_tokens(&env, &token, &supporter, 1_000_000_000);
+    mint_tokens(&env, &token, &creator, 1_000_000_000);
+    let pool_id = client.create(&creator, &100_000_000, &(env.ledger().timestamp() + 3600), &token, &BytesN::from_array(&env, &[0x01u8; 32]));
+    client.deposit(&pool_id, &supporter, &100_000_000);
+    client.submit_work(&pool_id, &BytesN::from_array(&env, &[0x02u8; 32]));
+    client.raise_dispute(&pool_id, &creator, &0u32, &BytesN::from_array(&env, &[0x03u8; 32]));
+    let did = 1u32;
+    client.resolve_dispute(&pool_id, &creator, &did, &true, &BytesN::from_array(&env, &[0x04u8; 32]));
+    let votes = client.get_arbitrator_votes(&did);
+    assert_eq!(votes.len(), 1);
+    assert_eq!(votes.get(0).unwrap().vote_for_creator, true);
+    assert_eq!(votes.get(0).unwrap().weight, 1);
+    // Double vote on same dispute reverts #26
+    let again = client.try_resolve_dispute(&pool_id, &creator, &did, &true, &BytesN::from_array(&env, &[0x04u8; 32]));
+    assert!(again.is_err());
+}
+// ─── B1 Coverage batch 2 — settlement & guard branches ─────────
+
+#[test]
+fn test_full_payout_with_fee_applied() {
+    let (env, admin, creator, supporter, client) = setup_initialized();
+    env.ledger().set_timestamp(1_000_000);
+    client.set_flow_constants(&admin, &120, &60, &60);
+    client.set_fee(&admin, &50, &admin); // 0.5% fee
+    let token_admin = Address::generate(&env);
+    let token = create_token(&env, &token_admin);
+    mint_tokens(&env, &token, &supporter, 1_000_000_000);
+    let pool_id = client.create(&creator, &100_000_000, &(env.ledger().timestamp() + 3600), &token, &BytesN::from_array(&env, &[0x01u8; 32]));
+    client.deposit(&pool_id, &supporter, &100_000_000);
+    client.submit_work(&pool_id, &BytesN::from_array(&env, &[0x02u8; 32]));
+    client.vote(&pool_id, &supporter, &true);
+    env.ledger().set_timestamp(1_000_121);
+    let token_client = token::Client::new(&env, &token);
+    let creator_before = token_client.balance(&creator);
+    let admin_before = token_client.balance(&admin);
+    client.finalize(&pool_id);
+    // creator gets 99.5M, treasury (admin) gets 500K
+    assert_eq!(token_client.balance(&creator) - creator_before, 99_500_000);
+    assert_eq!(token_client.balance(&admin) - admin_before, 500_000);
+    assert_eq!(client.get_total_fees_collected(), 500_000);
+    assert_eq!(client.get_pool(&pool_id).unwrap().status, 2);
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #39)")]
+fn test_set_flow_constants_above_max() {
+    let (env, admin, _c, _s, client) = setup_initialized();
+    client.set_flow_constants(&admin, &31_536_001, &60, &60);
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #14)")]
+fn test_double_initialize() {
+    let (env, admin, _c, _s, client) = setup_initialized();
+    client.initialize(&admin, &admin);
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #3)")]
+fn test_propose_admin_self() {
+    let (env, admin, _c, _s, client) = setup_initialized();
+    client.propose_admin(&admin, &admin);
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #30)")]
+fn test_set_fee_above_cap() {
+    let (env, admin, _c, _s, client) = setup_initialized();
+    client.set_fee(&admin, &501, &admin);
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #6)")]
+fn test_submit_work_after_deadline() {
+    let (env, _admin, creator, supporter, client) = setup_initialized();
+    env.ledger().set_timestamp(1_000_000);
+    let token_admin = Address::generate(&env);
+    let token = create_token(&env, &token_admin);
+    mint_tokens(&env, &token, &supporter, 1_000_000_000);
+    let pool_id = client.create(&creator, &100_000_000, &(env.ledger().timestamp() + 60), &token, &BytesN::from_array(&env, &[0x01u8; 32]));
+    client.deposit(&pool_id, &supporter, &100_000_000);
+    env.ledger().set_timestamp(1_000_061);
+    client.submit_work(&pool_id, &BytesN::from_array(&env, &[0x02u8; 32]));
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #12)")]
+fn test_vote_after_vote_deadline() {
+    let (env, admin, creator, supporter, client) = setup_initialized();
+    env.ledger().set_timestamp(1_000_000);
+    client.set_flow_constants(&admin, &120, &60, &60); // compress vote deadline
+    let token_admin = Address::generate(&env);
+    let token = create_token(&env, &token_admin);
+    mint_tokens(&env, &token, &supporter, 1_000_000_000);
+    let pool_id = client.create(&creator, &100_000_000, &(env.ledger().timestamp() + 3600), &token, &BytesN::from_array(&env, &[0x01u8; 32]));
+    client.deposit(&pool_id, &supporter, &100_000_000);
+    client.submit_work(&pool_id, &BytesN::from_array(&env, &[0x02u8; 32]));
+    env.ledger().set_timestamp(1_000_121); // vote deadline = 1_000_120
+    client.vote(&pool_id, &supporter, &true);
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #8)")]
+fn test_vote_non_supporter_unit() {
+    let (env, _admin, creator, supporter, client) = setup_initialized();
+    env.ledger().set_timestamp(1_000_000);
+    let token_admin = Address::generate(&env);
+    let token = create_token(&env, &token_admin);
+    mint_tokens(&env, &token, &supporter, 1_000_000_000);
+    let pool_id = client.create(&creator, &100_000_000, &(env.ledger().timestamp() + 3600), &token, &BytesN::from_array(&env, &[0x01u8; 32]));
+    client.deposit(&pool_id, &supporter, &100_000_000);
+    client.submit_work(&pool_id, &BytesN::from_array(&env, &[0x02u8; 32]));
+    client.vote(&pool_id, &creator, &true); // creator is not a supporter
+}
+
+#[test]
+fn test_referral_reward_credit_and_claim() {
+    let (env, admin, creator, supporter, client) = setup_initialized();
+    env.ledger().set_timestamp(1_000_000);
+    client.set_flow_constants(&admin, &120, &60, &60);
+    let token_admin = Address::generate(&env);
+    let token = create_token(&env, &token_admin);
+    mint_tokens(&env, &token, &supporter, 1_000_000_000);
+    let pool_id = client.create(&creator, &100_000_000, &(env.ledger().timestamp() + 3600), &token, &BytesN::from_array(&env, &[0x01u8; 32]));
+    client.register_referral(&creator, &supporter, &pool_id);
+    client.deposit(&pool_id, &supporter, &100_000_000);
+    client.submit_work(&pool_id, &BytesN::from_array(&env, &[0x02u8; 32]));
+    client.vote(&pool_id, &supporter, &true);
+    env.ledger().set_timestamp(1_000_121);
+    let token_client = token::Client::new(&env, &token);
+    let creator_before = token_client.balance(&creator);
+    client.finalize(&pool_id);
+    // Reward credited: 0.5% of 100M = 500K
+    let reward = client.claim_referral_reward(&creator);
+    assert_eq!(reward, 500_000);
+    assert_eq!(token_client.balance(&creator) - creator_before, 99_500_000 + 500_000);
+    // Second claim returns 0 (already claimed)
+    assert_eq!(client.claim_referral_reward(&creator), 0);
+}
