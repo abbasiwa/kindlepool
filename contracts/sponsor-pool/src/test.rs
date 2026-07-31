@@ -615,3 +615,81 @@ fn test_contract_version_is_three() {
     client.initialize(&admin, &admin);
     assert_eq!(client.get_contract_version(), 3);
 }
+
+// ─── Clean-Error Regression Tests (WasmVm trap fix) ────────────
+
+#[test]
+#[should_panic(expected = "Error(Contract, #33)")]
+fn test_accept_admin_no_pending_clean_error() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = Address::generate(&env);
+    let caller = Address::generate(&env);
+    let contract_id = env.register_contract(None, SponsorPool);
+    let client = SponsorPoolClient::new(&env, &contract_id);
+    client.initialize(&admin, &admin);
+    // No pending admin exists — must return clean #33 (not WasmVm trap)
+    client.accept_admin(&caller);
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #2)")]
+fn test_get_pool_nonexistent_clean_error() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = Address::generate(&env);
+    let contract_id = env.register_contract(None, SponsorPool);
+    let client = SponsorPoolClient::new(&env, &contract_id);
+    client.initialize(&admin, &admin);
+    // Nonexistent pool — must return clean #2 (not trap)
+    client.deposit(&999, &admin, &100);
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #38)")]
+fn test_withdraw_fees_no_balance_clean_error() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = Address::generate(&env);
+    let contract_id = env.register_contract(None, SponsorPool);
+    let client = SponsorPoolClient::new(&env, &contract_id);
+    client.initialize(&admin, &admin);
+    // No fees collected — clean #38 (balance guard precedes treasury lookup)
+    client.withdraw_fees(&admin, &1);
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #2)")]
+fn test_raise_dispute_nonexistent_pool_clean_error() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = Address::generate(&env);
+    let contract_id = env.register_contract(None, SponsorPool);
+    let client = SponsorPoolClient::new(&env, &contract_id);
+    client.initialize(&admin, &admin);
+    client.raise_dispute(&999, &admin, &0u32, &BytesN::from_array(&env, &[0x03u8; 32]));
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #2)")]
+fn test_close_dispute_nonexistent_clean_error() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = Address::generate(&env);
+    let contract_id = env.register_contract(None, SponsorPool);
+    let client = SponsorPoolClient::new(&env, &contract_id);
+    client.initialize(&admin, &admin);
+    client.close_dispute(&1, &1);
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #2)")]
+fn test_appeal_dispute_nonexistent_clean_error() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = Address::generate(&env);
+    let contract_id = env.register_contract(None, SponsorPool);
+    let client = SponsorPoolClient::new(&env, &contract_id);
+    client.initialize(&admin, &admin);
+    client.appeal_dispute(&1, &admin, &1);
+}

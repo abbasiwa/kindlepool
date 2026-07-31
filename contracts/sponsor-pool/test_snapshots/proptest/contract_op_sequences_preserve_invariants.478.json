@@ -1403,22 +1403,19 @@
                 "bytes": "0000000000000000000000000000000000000000000000000000000000000005"
               },
               {
-                "symbol": "raise_dispute"
+                "symbol": "vote"
               }
             ],
             "data": {
               "vec": [
                 {
-                  "u32": 7
+                  "u32": 3
                 },
                 {
-                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM"
+                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAATYON"
                 },
                 {
-                  "u32": 0
-                },
-                {
-                  "bytes": "0303030303030303030303030303030303030303030303030303030303030303"
+                  "bool": false
                 }
               ]
             }
@@ -1436,25 +1433,21 @@
           "v0": {
             "topics": [
               {
-                "symbol": "log"
+                "symbol": "error"
+              },
+              {
+                "error": {
+                  "contract": 2
+                }
               }
             ],
             "data": {
               "vec": [
                 {
-                  "string": "caught panic 'called `Result::unwrap()` on an `Err` value: PoolNotFound' from contract function 'Symbol(obj#337)'"
+                  "string": "failing with contract error"
                 },
                 {
-                  "u32": 7
-                },
-                {
-                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM"
-                },
-                {
-                  "u32": 0
-                },
-                {
-                  "bytes": "0303030303030303030303030303030303030303030303030303030303030303"
+                  "u32": 2
                 }
               ]
             }
@@ -1476,7 +1469,32 @@
               },
               {
                 "error": {
-                  "wasm_vm": "invalid_action"
+                  "contract": 2
+                }
+              }
+            ],
+            "data": {
+              "string": "escalating error to panic"
+            }
+          }
+        }
+      },
+      "failed_call": true
+    },
+    {
+      "event": {
+        "ext": "v0",
+        "contract_id": "0000000000000000000000000000000000000000000000000000000000000005",
+        "type_": "diagnostic",
+        "body": {
+          "v0": {
+            "topics": [
+              {
+                "symbol": "error"
+              },
+              {
+                "error": {
+                  "contract": 2
                 }
               }
             ],
@@ -1501,7 +1519,7 @@
               },
               {
                 "error": {
-                  "wasm_vm": "invalid_action"
+                  "contract": 2
                 }
               }
             ],
@@ -1511,21 +1529,18 @@
                   "string": "contract try_call failed"
                 },
                 {
-                  "symbol": "raise_dispute"
+                  "symbol": "vote"
                 },
                 {
                   "vec": [
                     {
-                      "u32": 7
+                      "u32": 3
                     },
                     {
-                      "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM"
+                      "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAATYON"
                     },
                     {
-                      "u32": 0
-                    },
-                    {
-                      "bytes": "0303030303030303030303030303030303030303030303030303030303030303"
+                      "bool": false
                     }
                   ]
                 }

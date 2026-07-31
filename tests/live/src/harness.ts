@@ -1,6 +1,6 @@
-import { execSync } from 'child_process'
+import { spawnSync } from 'child_process'
 
-export const CT = process.env.KINDPOOL_CONTRACT_ID ?? 'CAQ7VEML2NBZ2NAORFKCD5DOB4OKH4MZ6D6EYZMHTCXRUDALB3W5RY5L'
+export const CT = process.env.KINDPOOL_CONTRACT_ID ?? 'CDLOPJSINRB2ASWI4SAZ3OWTHKSGO6UCFG6SNBAGDYMYSTCP2YFMUYSF'
 export const USDC = process.env.KINDPOOL_USDC ?? 'CD2CIUPXUDF3HFTBMKBS7SKAPNUGC4V2ZWJMBA2MG6GY76BKZN7OIYEY'
 export const DEP = 'GAPCUR73ENAZ6RVFEUIGEEPKBRJWSVQ7N6INTJ56AYZB4BLNVRPMMFJP'
 export const ATT = 'GCCWMTFMGWUBHS75VVPQSORIHGJZW3A57GN5TREFJIXR4JL4L6QFWC3D'
@@ -22,20 +22,22 @@ export interface CheckResult {
 export const results: CheckResult[] = []
 
 export function invoke(account: string, ...args: string[]): string {
-  let stdout = '', stderr = ''
-  try {
-    const r = execSync(
-      `stellar contract invoke --id ${CT} --source-account ${account} --network ${NET} -- ${args.join(' ')}`,
-      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] },
-    )
-    stdout = r.trim()
-  } catch (e: any) {
-    stderr = (e.stderr ?? '').trim()
-    stdout = (e.stdout ?? '').trim()
-    return stderr || stdout
+  const flat = args.flatMap((a) => a.split(/\s+/).filter(Boolean))
+  const cliArgs = ['contract', 'invoke', '--id', CT, '--source-account', account, '--network', NET, '--', ...flat]
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const r = spawnSync('stellar', cliArgs, { encoding: 'utf8' })
+    const stdout = (r.stdout ?? '').trim()
+    const stderr = (r.stderr ?? '').trim()
+    const combined = stdout || stderr
+    if (r.status !== 0) {
+      if (combined.includes('WasmVm') || combined.includes('simulation failed') || combined.includes('rate')) {
+        if (attempt < 2) { spawnSync('sleep', ['2']); continue }
+      }
+      return combined
+    }
+    return stdout || (stderr.includes('Success') ? 'Success' : stderr)
   }
-  // CLI prints function result to stdout; "Success" messages to stderr.
-  return stdout || (stderr.includes('Success') ? 'Success' : stderr)
+  return 'ERROR: invoke retries exhausted'
 }
 
 export function check(suite: string, label: string, expected: string, actual: string): void {
@@ -54,7 +56,10 @@ export function createPool(goal: number, deadlineDeltaSec: number, account = 'ki
 
 export function poolState(poolId: number): any {
   const out = invoke('kindlepool-deployer', 'get_pool', `--pool_id ${poolId}`)
-  try { return JSON.parse(out) } catch { return {} }
+  try {
+    const parsed = JSON.parse(out)
+    return parsed ?? {}
+  } catch { return {} }
 }
 
 export function usdcBalance(addr: string): bigint {
@@ -64,3 +69,6 @@ export function usdcBalance(addr: string): bigint {
 }
 
 export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+// Pace CLI invokes to avoid RPC throttling on rapid sequences.
+export const pace = () => sleep(700)

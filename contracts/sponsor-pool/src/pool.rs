@@ -57,11 +57,10 @@ fn flow_unpause_cooldown(env: &Env) -> u64 {
 // ─── Admin & Pause Helpers ─────────────────────────────────────
 
 fn get_admin_internal(env: &Env) -> Address {
-    env.storage()
-        .instance()
-        .get::<DataKey, Address>(&DataKey::Admin)
-        .ok_or(PoolError::NotInitialized)
-        .unwrap()
+    match env.storage().instance().get::<DataKey, Address>(&DataKey::Admin) {
+        Some(a) => a,
+        None => panic_with_error!(env, PoolError::NotInitialized),
+    }
 }
 
 fn require_admin(env: &Env, caller: &Address) {
@@ -105,12 +104,10 @@ pub fn propose_admin(env: &Env, caller: &Address, new_admin: &Address) {
 
 pub fn accept_admin(env: &Env, caller: &Address) {
     caller.require_auth();
-    let pending: Address = env
-        .storage()
-        .instance()
-        .get(&DataKey::PendingAdmin)
-        .ok_or(PoolError::CallerIsNotPendingAdmin)
-        .unwrap();
+    let pending: Address = match env.storage().instance().get(&DataKey::PendingAdmin) {
+        Some(p) => p,
+        None => panic_with_error!(env, PoolError::CallerIsNotPendingAdmin),
+    };
     if caller != &pending {
         panic_with_error!(env, PoolError::CallerIsNotPendingAdmin);
     }
@@ -206,9 +203,10 @@ pub fn withdraw_fees(env: &Env, caller: &Address, amount: i128) {
     if amount > total {
         panic_with_error!(env, PoolError::WithdrawExceedsBalance);
     }
-    let treasury: Address = env.storage().instance().get(&DataKey::FeeTreasury)
-        .ok_or(PoolError::FeeTreasuryNotSet)
-        .unwrap();
+    let treasury: Address = match env.storage().instance().get(&DataKey::FeeTreasury) {
+        Some(t) => t,
+        None => panic_with_error!(env, PoolError::FeeTreasuryNotSet),
+    };
     env.storage().instance().set(&DataKey::FeeTotal, &(total - amount));
     env.events().publish(
         (TOPIC_FEES_WITHDRAWN,),
@@ -217,22 +215,26 @@ pub fn withdraw_fees(env: &Env, caller: &Address, amount: i128) {
 }
 
 fn get_pool_internal(env: &Env, pool_id: u32) -> Pool {
-    env.storage()
-        .instance()
-        .get::<DataKey, Pool>(&DataKey::Pool(pool_id))
-        .ok_or(PoolError::PoolNotFound)
-        .unwrap()
+    match env.storage().persistent().get::<DataKey, Pool>(&DataKey::Pool(pool_id)) {
+        Some(p) => p,
+        None => panic_with_error!(env, PoolError::PoolNotFound),
+    }
 }
 
 fn set_pool(env: &Env, pool_id: u32, pool: &Pool) {
     env.storage()
-        .instance()
+        .persistent()
         .set(&DataKey::Pool(pool_id), pool);
+    env.storage().persistent().extend_ttl(
+        &DataKey::Pool(pool_id),
+        env.ledger().sequence() + 535680,
+        env.ledger().sequence() + 535680,
+    );
 }
 
 fn get_supporter_internal(env: &Env, pool_id: u32, address: &Address) -> Supporter {
     env.storage()
-        .instance()
+        .persistent()
         .get::<DataKey, Supporter>(&DataKey::Supporter(pool_id, address.clone()))
         .unwrap_or(Supporter {
             amount: 0,
@@ -242,13 +244,18 @@ fn get_supporter_internal(env: &Env, pool_id: u32, address: &Address) -> Support
 
 fn set_supporter(env: &Env, pool_id: u32, address: &Address, supporter: &Supporter) {
     env.storage()
-        .instance()
+        .persistent()
         .set(&DataKey::Supporter(pool_id, address.clone()), supporter);
+    env.storage().persistent().extend_ttl(
+        &DataKey::Supporter(pool_id, address.clone()),
+        env.ledger().sequence() + 535680,
+        env.ledger().sequence() + 535680,
+    );
 }
 
 fn get_supporter_list(env: &Env, pool_id: u32) -> Vec<SupporterSnapshot> {
     env.storage()
-        .instance()
+        .persistent()
         .get::<DataKey, Vec<SupporterSnapshot>>(&DataKey::SupporterList(pool_id))
         .unwrap_or(Vec::new(env))
 }
@@ -257,8 +264,13 @@ fn push_supporter_list(env: &Env, pool_id: u32, snapshot: &SupporterSnapshot) {
     let mut list = get_supporter_list(env, pool_id);
     list.push_back(snapshot.clone());
     env.storage()
-        .instance()
+        .persistent()
         .set(&DataKey::SupporterList(pool_id), &list);
+    env.storage().persistent().extend_ttl(
+        &DataKey::SupporterList(pool_id),
+        env.ledger().sequence() + 535680,
+        env.ledger().sequence() + 535680,
+    );
 }
 
 pub fn create(
@@ -549,10 +561,10 @@ pub fn finalize(env: &Env, pool_id: u32) {
         }
 
         // Credit referral rewards for all supporters
-        let supporter_list = env.storage().instance().get::<DataKey, Vec<SupporterSnapshot>>(&DataKey::SupporterList(pool_id))
+        let supporter_list = env.storage().persistent().get::<DataKey, Vec<SupporterSnapshot>>(&DataKey::SupporterList(pool_id))
             .unwrap_or(Vec::new(env));
         let referrer_key = DataKey::Referral(pool.creator.clone());
-        let mut referrals: Vec<Referral> = env.storage().instance().get(&referrer_key).unwrap_or(Vec::new(env));
+        let mut referrals: Vec<Referral> = env.storage().persistent().get(&referrer_key).unwrap_or(Vec::new(env));
         for i in 0..supporter_list.len() {
             if let Some(s) = supporter_list.get(i) {
                 for j in 0..referrals.len() {
@@ -566,7 +578,8 @@ pub fn finalize(env: &Env, pool_id: u32) {
                 }
             }
         }
-        env.storage().instance().set(&referrer_key, &referrals);
+        env.storage().persistent().set(&referrer_key, &referrals);
+        env.storage().persistent().extend_ttl(&referrer_key, env.ledger().sequence() + 535680, env.ledger().sequence() + 535680);
 
         let mut paid_pool = pool.clone();
         paid_pool.status = STATUS_PAID;
@@ -634,7 +647,7 @@ pub fn raise_dispute(
     }
 
     // Prevent duplicate disputes
-    if env.storage().instance().has(&DataKey::Dispute(pool_id)) {
+    if env.storage().persistent().has(&DataKey::Dispute(pool_id)) {
         panic_with_error!(env, PoolError::DisputeAlreadyRaised);
     }
 
@@ -675,8 +688,13 @@ pub fn raise_dispute(
         appeal_count: 0,
     };
     env.storage()
-        .instance()
+        .persistent()
         .set(&DataKey::Dispute(id), &dispute);
+    env.storage().persistent().extend_ttl(
+        &DataKey::Dispute(id),
+        env.ledger().sequence() + 535680,
+        env.ledger().sequence() + 535680,
+    );
 
     // Set pool to disputed status
     let mut pool_mut = get_pool_internal(env, pool_id);
@@ -705,12 +723,14 @@ pub fn resolve_dispute(
     caller.require_auth();
     when_not_paused(env);
 
-    let dispute = env
+    let dispute = match env
         .storage()
-        .instance()
+        .persistent()
         .get::<DataKey, Dispute>(&DataKey::Dispute(dispute_id))
-        .ok_or(PoolError::PoolNotFound)
-        .unwrap();
+    {
+        Some(d) => d,
+        None => panic_with_error!(env, PoolError::PoolNotFound),
+    };
 
     if dispute.status != 0 && dispute.status != 3 {
         panic_with_error!(env, PoolError::DisputeAlreadyRaised);
@@ -722,7 +742,7 @@ pub fn resolve_dispute(
     }
 
     let vote_key = DataKey::ArbitratorVote(dispute_id, caller.clone());
-    if env.storage().instance().has(&vote_key) {
+    if env.storage().persistent().has(&vote_key) {
         panic_with_error!(env, PoolError::AlreadyVotedOnDispute);
     }
 
@@ -740,17 +760,23 @@ pub fn resolve_dispute(
         weight,
         reason_hash: reason_hash.clone(),
     };
-    env.storage().instance().set(&vote_key, &vote);
+    env.storage().persistent().set(&vote_key, &vote);
+    env.storage().persistent().extend_ttl(&vote_key, env.ledger().sequence() + 535680, env.ledger().sequence() + 535680);
 
     let mut vote_list: Vec<ArbitratorVote> = env
         .storage()
-        .instance()
+        .persistent()
         .get(&DataKey::ArbitratorVoteList(dispute_id))
         .unwrap_or(Vec::new(env));
     vote_list.push_back(vote);
     env.storage()
-        .instance()
+        .persistent()
         .set(&DataKey::ArbitratorVoteList(dispute_id), &vote_list);
+    env.storage().persistent().extend_ttl(
+        &DataKey::ArbitratorVoteList(dispute_id),
+        env.ledger().sequence() + 535680,
+        env.ledger().sequence() + 535680,
+    );
 
     env.events().publish(
         (TOPIC_ARBITRATOR_VOTED,),
@@ -765,12 +791,14 @@ pub fn resolve_dispute(
 
 pub fn close_dispute(env: &Env, pool_id: u32, dispute_id: u32) {
     when_not_paused(env);
-    let mut dispute = env
+    let mut dispute = match env
         .storage()
-        .instance()
+        .persistent()
         .get::<DataKey, Dispute>(&DataKey::Dispute(dispute_id))
-        .ok_or(PoolError::PoolNotFound)
-        .unwrap();
+    {
+        Some(d) => d,
+        None => panic_with_error!(env, PoolError::PoolNotFound),
+    };
 
     if dispute.status != 0 && dispute.status != 3 {
         panic_with_error!(env, PoolError::DisputeAlreadyRaised);
@@ -779,7 +807,7 @@ pub fn close_dispute(env: &Env, pool_id: u32, dispute_id: u32) {
     let pool = get_pool_internal(env, pool_id);
     let vote_list: Vec<ArbitratorVote> = env
         .storage()
-        .instance()
+        .persistent()
         .get(&DataKey::ArbitratorVoteList(dispute_id))
         .unwrap_or(Vec::new(env));
 
@@ -828,7 +856,7 @@ pub fn close_dispute(env: &Env, pool_id: u32, dispute_id: u32) {
         let token_client = token::Client::new(env, &pool.token);
         let supporter_list: Vec<SupporterSnapshot> = env
             .storage()
-            .instance()
+            .persistent()
             .get(&DataKey::SupporterList(pool_id))
             .unwrap_or(Vec::new(env));
         for i in 0..supporter_list.len() {
@@ -852,8 +880,13 @@ pub fn close_dispute(env: &Env, pool_id: u32, dispute_id: u32) {
 
     dispute.resolved_at = env.ledger().timestamp();
     env.storage()
-        .instance()
+        .persistent()
         .set(&DataKey::Dispute(dispute_id), &dispute);
+    env.storage().persistent().extend_ttl(
+        &DataKey::Dispute(dispute_id),
+        env.ledger().sequence() + 535680,
+        env.ledger().sequence() + 535680,
+    );
 
     // Return fee to winner
     let token_client = token::Client::new(env, &pool.token);
@@ -888,12 +921,14 @@ pub fn appeal_dispute(
     disputant.require_auth();
     when_not_paused(env);
 
-    let mut dispute = env
+    let mut dispute = match env
         .storage()
-        .instance()
+        .persistent()
         .get::<DataKey, Dispute>(&DataKey::Dispute(dispute_id))
-        .ok_or(PoolError::PoolNotFound)
-        .unwrap();
+    {
+        Some(d) => d,
+        None => panic_with_error!(env, PoolError::PoolNotFound),
+    };
 
     if dispute.status != 0 && dispute.status != 3 {
         panic_with_error!(env, PoolError::DisputeAlreadyRaised);
@@ -915,8 +950,13 @@ pub fn appeal_dispute(
     dispute.status = 3;
     dispute.appeal_count = dispute.appeal_count.saturating_add(1);
     env.storage()
-        .instance()
+        .persistent()
         .set(&DataKey::Dispute(dispute_id), &dispute);
+    env.storage().persistent().extend_ttl(
+        &DataKey::Dispute(dispute_id),
+        env.ledger().sequence() + 535680,
+        env.ledger().sequence() + 535680,
+    );
 
     let mut pool_mut = get_pool_internal(env, pool_id);
     pool_mut.status = STATUS_APPEALED;
@@ -925,13 +965,13 @@ pub fn appeal_dispute(
 
 pub fn get_dispute(env: &Env, dispute_id: u32) -> Option<Dispute> {
     env.storage()
-        .instance()
+        .persistent()
         .get::<DataKey, Dispute>(&DataKey::Dispute(dispute_id))
 }
 
 pub fn get_arbitrator_votes(env: &Env, dispute_id: u32) -> Vec<ArbitratorVote> {
     env.storage()
-        .instance()
+        .persistent()
         .get(&DataKey::ArbitratorVoteList(dispute_id))
         .unwrap_or(Vec::new(env))
 }
@@ -956,7 +996,7 @@ pub fn register_referral(env: &Env, referrer: &Address, referee: &Address, pool_
     }
 
     let key = DataKey::Referral(referrer.clone());
-    let mut referrals: Vec<Referral> = env.storage().instance().get(&key).unwrap_or(Vec::new(env));
+    let mut referrals: Vec<Referral> = env.storage().persistent().get(&key).unwrap_or(Vec::new(env));
     for i in 0..referrals.len() {
         if let Some(r) = referrals.get(i) {
             if r.referee == *referee && r.pool_id == pool_id {
@@ -965,7 +1005,8 @@ pub fn register_referral(env: &Env, referrer: &Address, referee: &Address, pool_
         }
     }
     referrals.push_back(Referral { referee: referee.clone(), pool_id, reward: 0, claimed: false });
-    env.storage().instance().set(&key, &referrals);
+    env.storage().persistent().set(&key, &referrals);
+    env.storage().persistent().extend_ttl(&key, env.ledger().sequence() + 535680, env.ledger().sequence() + 535680);
 
     env.events().publish(
         (TOPIC_REFERRAL_REGISTERED,),
@@ -977,7 +1018,7 @@ pub fn claim_referral_reward(env: &Env, referrer: &Address) -> i128 {
     referrer.require_auth();
     when_not_paused(env);
     let key = DataKey::Referral(referrer.clone());
-    let referrals: Vec<Referral> = env.storage().instance().get(&key).unwrap_or(Vec::new(env));
+    let referrals: Vec<Referral> = env.storage().persistent().get(&key).unwrap_or(Vec::new(env));
     let mut total_reward: i128 = 0;
     let mut updated = Vec::new(env);
 
@@ -992,7 +1033,8 @@ pub fn claim_referral_reward(env: &Env, referrer: &Address) -> i128 {
     }
 
     if total_reward > 0 && updated.len() > 0 {
-        env.storage().instance().set(&key, &updated);
+        env.storage().persistent().set(&key, &updated);
+        env.storage().persistent().extend_ttl(&key, env.ledger().sequence() + 535680, env.ledger().sequence() + 535680);
 
         if let Some(first) = updated.get(0) {
             let pool = get_pool_internal(env, first.pool_id);
@@ -1005,12 +1047,12 @@ pub fn claim_referral_reward(env: &Env, referrer: &Address) -> i128 {
 }
 
 pub fn get_referrals(env: &Env, referrer: &Address) -> Vec<Referral> {
-    env.storage().instance().get(&DataKey::Referral(referrer.clone())).unwrap_or(Vec::new(env))
+    env.storage().persistent().get(&DataKey::Referral(referrer.clone())).unwrap_or(Vec::new(env))
 }
 
 pub fn get_pool(env: &Env, pool_id: u32) -> Option<Pool> {
     env.storage()
-        .instance()
+        .persistent()
         .get::<DataKey, Pool>(&DataKey::Pool(pool_id))
 }
 
@@ -1022,7 +1064,7 @@ pub fn get_pool_count(env: &Env) -> u32 {
 
 pub fn get_supporter(env: &Env, pool_id: u32, address: &Address) -> Option<Supporter> {
     env.storage()
-        .instance()
+        .persistent()
         .get::<DataKey, Supporter>(&DataKey::Supporter(pool_id, address.clone()))
 }
 
@@ -1043,7 +1085,7 @@ pub fn get_pools_by_supporter(env: &Env, supporter: &Address) -> Vec<u32> {
     let count = get_pool_count(env);
     let mut result = Vec::new(env);
     for i in 1..=count {
-        if env.storage().instance().has(&DataKey::Supporter(i, supporter.clone())) {
+        if env.storage().persistent().has(&DataKey::Supporter(i, supporter.clone())) {
             result.push_back(i);
         }
     }

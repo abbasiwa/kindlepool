@@ -1,4 +1,4 @@
-import { check, createPool, invoke, poolState, results, sleep, usdcBalance, CT, NET, ATT, SUPB, SUPC } from './harness'
+import { check, createPool, invoke, pace, poolState, results, sleep, usdcBalance, CT, NET, ATT, SUPB, SUPC } from './harness'
 
 // ── Suite runners ────────────────────────────────────────────────
 
@@ -25,6 +25,7 @@ async function s1_happy_path_approve_payout() {
   check('S1', 'finalize success', 'Success', out.includes('Success') ? 'Success' : out)
   p = poolState(pid)
   check('S1', 'pool paid', '"status":2', JSON.stringify(p))
+  await sleep(6000)
   const creatorAfter = usdcBalance('GAPCUR73ENAZ6RVFEUIGEEPKBRJWSVQ7N6INTJ56AYZB4BLNVRPMMFJP')
   // Payout 100M minus 0.5% fee (500K) = 99.5M
   check('S1', 'payout 99.5M', '99500000', String(creatorAfter - creatorBefore))
@@ -45,6 +46,7 @@ async function s2_reject_refund() {
   check('S2', 'finalize success', 'Success', out.includes('Success') ? 'Success' : out)
   const p = poolState(pid)
   check('S2', 'pool expired', '"status":3', JSON.stringify(p))
+  await sleep(6000)
   const aAfter = usdcBalance('GCCWMTFMGWUBHS75VVPQSORIHGJZW3A57GN5TREFJIXR4JL4L6QFWC3D')
   check('S2', 'supporter A refunded 60M', '60000000', String(aAfter - aBefore))
 }
@@ -59,6 +61,7 @@ async function s3_expiry_refund() {
   check('S3', 'finalize success', 'Success', out.includes('Success') ? 'Success' : out)
   const p = poolState(pid)
   check('S3', 'pool expired', '"status":3', JSON.stringify(p))
+  await sleep(6000)
   const aAfter = usdcBalance('GCCWMTFMGWUBHS75VVPQSORIHGJZW3A57GN5TREFJIXR4JL4L6QFWC3D')
   check('S3', 'refunded 30M', '30000000', String(aAfter - aBefore))
 }
@@ -83,8 +86,11 @@ async function s4_dispute_creator_wins() {
   }
   check('S4', 'dispute found', '\\d+', String(did))
   invoke('kindlepool-deployer', 'resolve_dispute', `--pool_id ${pid}`, `--caller ${'GAPCUR73ENAZ6RVFEUIGEEPKBRJWSVQ7N6INTJ56AYZB4BLNVRPMMFJP'}`, `--dispute_id ${did}`, '--vote_for_creator true', `--reason_hash ${'3333333333333333333333333333333333333333333333333333333333333333'}`)
+  await pace()
   invoke('attacker', 'resolve_dispute', `--pool_id ${pid}`, '--caller GCCWMTFMGWUBHS75VVPQSORIHGJZW3A57GN5TREFJIXR4JL4L6QFWC3D', `--dispute_id ${did}`, '--vote_for_creator true', `--reason_hash ${'3333333333333333333333333333333333333333333333333333333333333333'}`)
+  await pace()
   invoke('sup-b', 'resolve_dispute', `--pool_id ${pid}`, '--caller GCIRZQ64PDFPI422IHJ3ZQ4LS2QVWF63BNVKPETEC3KDPVG4LOLHMJYA', `--dispute_id ${did}`, '--vote_for_creator false', `--reason_hash ${'3333333333333333333333333333333333333333333333333333333333333333'}`)
+  await pace()
   const close = invoke('kindlepool-deployer', 'close_dispute', `--pool_id ${pid}`, `--dispute_id ${did}`)
   check('S4', 'close_dispute', 'Success', close.includes('Success') ? 'Success' : close)
   const p = poolState(pid)
@@ -168,6 +174,7 @@ async function s8_fee_lifecycle() {
   invoke('attacker', 'vote', `--pool_id ${pid}`, '--voter GCCWMTFMGWUBHS75VVPQSORIHGJZW3A57GN5TREFJIXR4JL4L6QFWC3D', '--approve true')
   await sleep(125000)
   invoke('kindlepool-deployer', 'finalize', `--pool_id ${pid}`)
+  await sleep(6000)
   const after = invoke('kindlepool-deployer', 'get_total_fees_collected')
   // 0.5% of 200M = 1M fee
   check('S8', 'fee collected = 1M', '1000000', String(Number(after.match(/\d+/)?.[0] ?? 0) - Number(before.match(/\d+/)?.[0] ?? 0)))
@@ -224,8 +231,10 @@ async function s11_cancel() {
   check('S11', 'cancel', 'Success', out.includes('Success') ? 'Success' : out)
   const p = poolState(pid)
   check('S11', 'status expired', '"status":3', JSON.stringify(p))
+  await sleep(4000)
   const aAfter = usdcBalance('GCCWMTFMGWUBHS75VVPQSORIHGJZW3A57GN5TREFJIXR4JL4L6QFWC3D')
-  check('S11', 'refund 20M', '20000000', String(aAfter - aBefore))
+  // Deposit (-20M) + refund (+20M) nets to zero — proves exact refund
+  check('S11', 'refund restores balance (net 0)', '^0$', String(aAfter - aBefore))
 }
 
 async function s12_negative_matrix() {
@@ -233,6 +242,7 @@ async function s12_negative_matrix() {
   const pid = createPool(100000000, 300)
   const zero = invoke('attacker', 'deposit', `--pool_id ${pid}`, '--supporter GCCWMTFMGWUBHS75VVPQSORIHGJZW3A57GN5TREFJIXR4JL4L6QFWC3D', '--amount 0')
   check('S12', 'zero deposit #3', '#3', zero)
+  await pace()
   invoke('attacker', 'deposit', `--pool_id ${pid}`, '--supporter GCCWMTFMGWUBHS75VVPQSORIHGJZW3A57GN5TREFJIXR4JL4L6QFWC3D', '--amount 60000000')
   invoke('sup-b', 'deposit', `--pool_id ${pid}`, '--supporter GCIRZQ64PDFPI422IHJ3ZQ4LS2QVWF63BNVKPETEC3KDPVG4LOLHMJYA', '--amount 40000000')
   await sleep(4000)
@@ -284,11 +294,11 @@ async function s15_concurrent_accounts() {
   console.log('▶ S15: Concurrent accounts — interleaved ops')
   const pid = createPool(200000000, 300)
   // Interleave deposits from 3 accounts without waits
-  const txs = [
-    invoke('attacker', 'deposit', `--pool_id ${pid}`, '--supporter GCCWMTFMGWUBHS75VVPQSORIHGJZW3A57GN5TREFJIXR4JL4L6QFWC3D', '--amount 70000000'),
-    invoke('sup-b', 'deposit', `--pool_id ${pid}`, '--supporter GCIRZQ64PDFPI422IHJ3ZQ4LS2QVWF63BNVKPETEC3KDPVG4LOLHMJYA', '--amount 70000000'),
-    invoke('sup-c', 'deposit', `--pool_id ${pid}`, '--supporter GA4HESRPSVM7PLTCJOC5OTA2FNZIUKG5EJ5W6EAVSHEH52VNLFY7AVHA', '--amount 60000000'),
-  ]
+  invoke('attacker', 'deposit', `--pool_id ${pid}`, '--supporter GCCWMTFMGWUBHS75VVPQSORIHGJZW3A57GN5TREFJIXR4JL4L6QFWC3D', '--amount 70000000')
+  await pace()
+  invoke('sup-b', 'deposit', `--pool_id ${pid}`, '--supporter GCIRZQ64PDFPI422IHJ3ZQ4LS2QVWF63BNVKPETEC3KDPVG4LOLHMJYA', '--amount 70000000')
+  await pace()
+  invoke('sup-c', 'deposit', `--pool_id ${pid}`, '--supporter GA4HESRPSVM7PLTCJOC5OTA2FNZIUKG5EJ5W6EAVSHEH52VNLFY7AVHA', '--amount 60000000')
   await sleep(6000)
   const p = poolState(pid)
   check('S15', 'all deposits landed (200M)', '"total_deposited":"200000000"', JSON.stringify(p))
@@ -315,13 +325,15 @@ async function main() {
     ['S14', s14_idempotency],
     ['S15', s15_concurrent_accounts],
   ]
-  for (const [name, fn] of suites) {
+  const filter = process.env.SUITES
+  const selected = filter ? suites.filter(([name]) => filter.split(',').includes(name)) : suites
+  for (const [name, fn] of selected) {
     try { await fn() } catch (e: any) { console.log(`  ❌ SUITE ${name} ERROR: ${e.message}`) }
     console.log('')
   }
   const pass = results.filter((r) => r.status === 'PASS').length
   const fail = results.length - pass
-  console.log(`═══ RESULTS: ${pass} PASS / ${fail} FAIL / ${results.length} TOTAL ═══`)
+  console.log(`═══ RESULTS (${selected.length} suites): ${pass} PASS / ${fail} FAIL / ${results.length} CHECKS ═══`)
   if (fail > 0) process.exit(1)
 }
 
