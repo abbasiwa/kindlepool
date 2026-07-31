@@ -139,7 +139,7 @@ fn test_deposit_after_deadline() {
 
 #[test]
 fn test_full_lifecycle_approved() {
-    let (env, _contract_id, _creator, supporter, pool_id) = setup_pool();
+    let (env, _contract_id, creator, supporter, pool_id) = setup_pool();
     let client = SponsorPoolClient::new(&env, &_contract_id);
     let token = client.get_pool(&pool_id).unwrap().token;
 

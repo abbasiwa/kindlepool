@@ -7,6 +7,9 @@ mod types;
 #[cfg(test)]
 mod test;
 
+#[cfg(test)]
+mod proptest;
+
 #[contract]
 pub struct SponsorPool;
 
