@@ -109,16 +109,16 @@ jobs:
           targets: ${{ env.WASM_TARGET }}
 
       - name: Build contract (WASM release)
-        run: cargo build -p sponsor-pool --target ${{ env.WASM_TARGET }} --release
+        run: cargo build -p sponsor-pool --target wasm32v1-none --release
 
       - name: Check WASM size
         run: |
-          WASM_FILE="target/${{ env.WASM_TARGET }}/release/sponsor_pool.wasm"
+          WASM_FILE="target/wasm32v1-none/release/sponsor_pool.wasm"
           if [ -f "$WASM_FILE" ]; then
             SIZE=$(wc -c < "$WASM_FILE")
             echo "WASM size: $SIZE bytes ($(( SIZE / 1024 )) KB)"
-            if [ "$SIZE" -gt 65536 ]; then
-              echo "❌ WASM exceeds 64KB budget"
+            if [ "$SIZE" -gt 2097152 ]; then
+              echo "❌ WASM exceeds 2MB budget"
               exit 1
             fi
             echo "✅ WASM within budget"

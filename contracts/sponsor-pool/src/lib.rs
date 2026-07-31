@@ -1,5 +1,5 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, Address, BytesN, Env};
+use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, Vec};
 
 mod pool;
 mod types;
@@ -12,6 +12,11 @@ pub struct SponsorPool;
 
 #[contractimpl]
 impl SponsorPool {
+    pub fn initialize(env: Env, caller: Address, admin: Address) {
+        caller.require_auth();
+        pool::init_admin(&env, &admin);
+    }
+
     pub fn create(
         env: Env,
         creator: Address,
@@ -37,6 +42,10 @@ impl SponsorPool {
 
     pub fn finalize(env: Env, pool_id: u32) {
         pool::finalize(&env, pool_id);
+    }
+
+    pub fn cancel_pool(env: Env, caller: Address, pool_id: u32) {
+        pool::cancel_pool(&env, &caller, pool_id);
     }
 
     pub fn raise_dispute(
@@ -68,8 +77,48 @@ impl SponsorPool {
         pool::appeal_dispute(&env, pool_id, &disputant, dispute_id);
     }
 
-    pub fn set_fee(env: Env, admin: Address, fee_bps: u32, treasury: Address) {
-        pool::set_fee(&env, &admin, fee_bps, &treasury);
+    // ─── Admin & Security ───────────────────────────────────────
+
+    pub fn get_admin(env: Env) -> Address {
+        pool::get_admin(&env)
+    }
+
+    pub fn propose_admin(env: Env, caller: Address, new_admin: Address) {
+        pool::propose_admin(&env, &caller, &new_admin);
+    }
+
+    pub fn accept_admin(env: Env, caller: Address) {
+        pool::accept_admin(&env, &caller);
+    }
+
+    pub fn schedule_pause(env: Env, caller: Address) {
+        pool::schedule_pause(&env, &caller);
+    }
+
+    pub fn pause(env: Env, caller: Address) {
+        pool::pause(&env, &caller);
+    }
+
+    pub fn unpause(env: Env, caller: Address) {
+        pool::unpause(&env, &caller);
+    }
+
+    pub fn get_paused(env: Env) -> bool {
+        pool::get_paused(&env)
+    }
+
+    // ─── Fees & Treasury ────────────────────────────────────────
+
+    pub fn set_fee(env: Env, caller: Address, fee_bps: u32, treasury: Address) {
+        pool::set_fee(&env, &caller, fee_bps, &treasury);
+    }
+
+    pub fn set_fee_treasury(env: Env, caller: Address, treasury: Address) {
+        pool::set_fee_treasury(&env, &caller, &treasury);
+    }
+
+    pub fn withdraw_fees(env: Env, caller: Address, amount: i128) {
+        pool::withdraw_fees(&env, &caller, amount);
     }
 
     pub fn get_fee(env: Env) -> (i128, Option<Address>) {
@@ -80,6 +129,8 @@ impl SponsorPool {
         pool::get_total_fees_collected(&env)
     }
 
+    // ─── Referrals ──────────────────────────────────────────────
+
     pub fn register_referral(env: Env, referrer: Address, referee: Address, pool_id: u32) {
         pool::register_referral(&env, &referrer, &referee, pool_id);
     }
@@ -88,22 +139,45 @@ impl SponsorPool {
         pool::claim_referral_reward(&env, &referrer)
     }
 
-    pub fn get_referrals(env: Env, referrer: Address) -> soroban_sdk::Vec<types::Referral> {
+    pub fn get_referrals(env: Env, referrer: Address) -> Vec<types::Referral> {
         pool::get_referrals(&env, &referrer)
     }
+
+    // ─── View Functions ─────────────────────────────────────────
 
     pub fn get_dispute(env: Env, dispute_id: u32) -> Option<types::Dispute> {
         pool::get_dispute(&env, dispute_id)
     }
 
-    pub fn get_arbitrator_votes(
-        env: Env,
-        dispute_id: u32,
-    ) -> soroban_sdk::Vec<types::ArbitratorVote> {
+    pub fn get_arbitrator_votes(env: Env, dispute_id: u32) -> Vec<types::ArbitratorVote> {
         pool::get_arbitrator_votes(&env, dispute_id)
     }
 
     pub fn get_pool(env: Env, pool_id: u32) -> Option<types::Pool> {
         pool::get_pool(&env, pool_id)
+    }
+
+    pub fn get_pool_count(env: Env) -> u32 {
+        pool::get_pool_count(&env)
+    }
+
+    pub fn get_supporter(env: Env, pool_id: u32, address: Address) -> Option<types::Supporter> {
+        pool::get_supporter(&env, pool_id, &address)
+    }
+
+    pub fn get_pools_by_creator(env: Env, creator: Address) -> Vec<u32> {
+        pool::get_pools_by_creator(&env, &creator)
+    }
+
+    pub fn get_pools_by_supporter(env: Env, supporter: Address) -> Vec<u32> {
+        pool::get_pools_by_supporter(&env, &supporter)
+    }
+
+    pub fn get_platform_stats(env: Env) -> types::PlatformStats {
+        pool::get_platform_stats(&env)
+    }
+
+    pub fn get_contract_version(env: Env) -> u32 {
+        pool::get_contract_version(&env)
     }
 }

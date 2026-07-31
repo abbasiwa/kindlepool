@@ -1,4 +1,4 @@
-use soroban_sdk::{contracterror, contracttype, Address, BytesN, Vec};
+use soroban_sdk::{contracterror, contracttype, Address, BytesN};
 
 #[contracttype]
 #[derive(Clone, Debug)]
@@ -65,6 +65,14 @@ pub enum PoolError {
     NotEnoughArbitrators = 29,
     FeeTooHigh = 30,
     FeeTreasuryNotSet = 31,
+    OnlyAdmin = 32,
+    CallerIsNotPendingAdmin = 33,
+    ContractPaused = 34,
+    PauseNoticeNotElapsed = 35,
+    UnpauseCooldownActive = 36,
+    InvalidTreasury = 37,
+    WithdrawExceedsBalance = 38,
+    InvalidAmount = 39,
 }
 
 // Events
@@ -140,10 +148,17 @@ pub const STATUS_APPEALED: u32 = 5;
 
 pub const REFERRAL_BONUS_BPS: i128 = 50; // 0.5% of pool goal to referrer
 
+#[allow(dead_code)]
 pub const DISPUTE_REASON_REJECTED: u32 = 0;
+#[allow(dead_code)]
 pub const DISPUTE_REASON_NO_DELIVERY: u32 = 1;
 
 pub const DISPUTE_FEE_BPS: i128 = 100; // 1% fee for raising dispute
+
+pub const CONTRACT_VERSION: u32 = 2;
+
+pub const PAUSE_NOTICE_SECONDS: u64 = 86400; // 24h notice before pause takes effect
+pub const UNPAUSE_COOLDOWN_SECONDS: u64 = 172800; // 48h cooldown after pause
 
 pub const TOPIC_POOL_CREATED: soroban_sdk::Symbol = soroban_sdk::symbol_short!("p_creat");
 pub const TOPIC_DEPOSITED: soroban_sdk::Symbol = soroban_sdk::symbol_short!("p_dep");
@@ -156,7 +171,17 @@ pub const TOPIC_DISPUTE_RAISED: soroban_sdk::Symbol = soroban_sdk::symbol_short!
 pub const TOPIC_DISPUTE_RESOLVED: soroban_sdk::Symbol = soroban_sdk::symbol_short!("p_resl");
 pub const TOPIC_ARBITRATOR_VOTED: soroban_sdk::Symbol = soroban_sdk::symbol_short!("p_arbv");
 pub const TOPIC_REFERRAL_REGISTERED: soroban_sdk::Symbol = soroban_sdk::symbol_short!("p_refr");
+#[allow(dead_code)]
 pub const TOPIC_REFERRAL_REWARD: soroban_sdk::Symbol = soroban_sdk::symbol_short!("p_rrwd");
+pub const TOPIC_FEE_UPDATED: soroban_sdk::Symbol = soroban_sdk::symbol_short!("p_feeu");
+pub const TOPIC_FEE_TREASURY_UPDATED: soroban_sdk::Symbol = soroban_sdk::symbol_short!("p_feet");
+pub const TOPIC_FEES_WITHDRAWN: soroban_sdk::Symbol = soroban_sdk::symbol_short!("p_fees");
+pub const TOPIC_ADMIN_PROPOSED: soroban_sdk::Symbol = soroban_sdk::symbol_short!("p_admp");
+pub const TOPIC_ADMIN_ACCEPTED: soroban_sdk::Symbol = soroban_sdk::symbol_short!("p_adma");
+pub const TOPIC_PAUSE_SCHEDULED: soroban_sdk::Symbol = soroban_sdk::symbol_short!("p_paue");
+pub const TOPIC_PAUSED: soroban_sdk::Symbol = soroban_sdk::symbol_short!("p_paed");
+pub const TOPIC_UNPAUSED: soroban_sdk::Symbol = soroban_sdk::symbol_short!("p_unps");
+pub const TOPIC_POOL_CANCELLED: soroban_sdk::Symbol = soroban_sdk::symbol_short!("p_cancl");
 
 // Dispute types
 #[contracttype]
@@ -197,6 +222,81 @@ pub enum DataKey {
     FeeTotal,
     Referral(Address),
     ReferralRewards(Address),
+    Admin,
+    PendingAdmin,
+    Paused,
+    PauseNoticeAt,
+    PausedAt,
+}
+
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct PlatformStats {
+    pub pool_count: u32,
+    pub total_pools_paid: u32,
+    pub total_pools_expired: u32,
+    pub total_pools_disputed: u32,
+    pub total_volume_paid: i128,
+    pub total_fees_collected: i128,
+    pub active_pools: u32,
+}
+
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct FeeUpdatedEvent {
+    pub fee_bps: u32,
+    pub treasury: Address,
+}
+
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct FeeTreasuryUpdatedEvent {
+    pub treasury: Address,
+}
+
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct FeesWithdrawnEvent {
+    pub amount: i128,
+    pub to: Address,
+}
+
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct AdminProposedEvent {
+    pub old: Address,
+    pub new: Address,
+}
+
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct AdminAcceptedEvent {
+    pub new: Address,
+}
+
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct PauseScheduledEvent {
+    pub at: u64,
+}
+
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct PausedEvent {
+    pub at: u64,
+}
+
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct UnpausedEvent {
+    pub at: u64,
+}
+
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct PoolCancelledEvent {
+    pub pool_id: u32,
+    pub cancelled_by: Address,
 }
 
 #[contracttype]
