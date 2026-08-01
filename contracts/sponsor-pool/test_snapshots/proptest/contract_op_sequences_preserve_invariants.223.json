@@ -1412,15 +1412,15 @@
             "data": {
               "vec": [
                 {
-                  "u32": 2
+                  "u32": 4
                 },
                 {
-                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAARQG5"
+                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMDR4"
                 },
                 {
                   "i128": {
-                    "hi": 0,
-                    "lo": 0
+                    "hi": 4308100664379363430,
+                    "lo": 11634872715808025773
                   }
                 }
               ]
@@ -1443,7 +1443,7 @@
               },
               {
                 "error": {
-                  "contract": 3
+                  "contract": 2
                 }
               }
             ],
@@ -1453,7 +1453,7 @@
                   "string": "failing with contract error"
                 },
                 {
-                  "u32": 3
+                  "u32": 2
                 }
               ]
             }
@@ -1475,7 +1475,7 @@
               },
               {
                 "error": {
-                  "contract": 3
+                  "contract": 2
                 }
               }
             ],
@@ -1500,7 +1500,7 @@
               },
               {
                 "error": {
-                  "contract": 3
+                  "contract": 2
                 }
               }
             ],
@@ -1525,7 +1525,7 @@
               },
               {
                 "error": {
-                  "contract": 3
+                  "contract": 2
                 }
               }
             ],
@@ -1540,15 +1540,15 @@
                 {
                   "vec": [
                     {
-                      "u32": 2
+                      "u32": 4
                     },
                     {
-                      "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAARQG5"
+                      "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMDR4"
                     },
                     {
                       "i128": {
-                        "hi": 0,
-                        "lo": 0
+                        "hi": 4308100664379363430,
+                        "lo": 11634872715808025773
                       }
                     }
                   ]
@@ -1674,24 +1674,11 @@
                 "bytes": "0000000000000000000000000000000000000000000000000000000000000005"
               },
               {
-                "symbol": "deposit"
+                "symbol": "finalize"
               }
             ],
             "data": {
-              "vec": [
-                {
-                  "u32": 5
-                },
-                {
-                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOLZM"
-                },
-                {
-                  "i128": {
-                    "hi": 4521473565881118068,
-                    "lo": 1898830539228588540
-                  }
-                }
-              ]
+              "u32": 6
             }
           }
         }
@@ -1803,21 +1790,12 @@
                   "string": "contract try_call failed"
                 },
                 {
-                  "symbol": "deposit"
+                  "symbol": "finalize"
                 },
                 {
                   "vec": [
                     {
-                      "u32": 5
-                    },
-                    {
-                      "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOLZM"
-                    },
-                    {
-                      "i128": {
-                        "hi": 4521473565881118068,
-                        "lo": 1898830539228588540
-                      }
+                      "u32": 6
                     }
                   ]
                 }

@@ -1,4 +1,4 @@
-import { check, createPool, invoke, pace, poolState, results, sleep, usdcBalance, CT, NET, ATT, SUPB, SUPC } from './harness'
+import { check, createPool, invoke, pace, poolState, results, sleep, usdcBalance, USDC, CT, NET, ATT, SUPB, SUPC } from './harness'
 
 // ── Suite runners ────────────────────────────────────────────────
 
@@ -154,6 +154,9 @@ async function s6_dispute_appeal() {
 
 async function s7_referral_reward() {
   console.log('▶ S7: Referral — claim 0.5% reward after successful pool')
+  // F-105: rewards are self-funded from the platform fee (cap = fee).
+  invoke('kindlepool-deployer', 'set_fee', '--caller GAPCUR73ENAZ6RVFEUIGEEPKBRJWSVQ7N6INTJ56AYZB4BLNVRPMMFJP', '--fee_bps 50', '--treasury GAPCUR73ENAZ6RVFEUIGEEPKBRJWSVQ7N6INTJ56AYZB4BLNVRPMMFJP')
+  await pace()
   const pid = createPool(100000000, 120)
   invoke('kindlepool-deployer', 'register_referral', `--referrer ${'GAPCUR73ENAZ6RVFEUIGEEPKBRJWSVQ7N6INTJ56AYZB4BLNVRPMMFJP'}`, '--referee GCCWMTFMGWUBHS75VVPQSORIHGJZW3A57GN5TREFJIXR4JL4L6QFWC3D', `--pool_id ${pid}`)
   invoke('attacker', 'deposit', `--pool_id ${pid}`, '--supporter GCCWMTFMGWUBHS75VVPQSORIHGJZW3A57GN5TREFJIXR4JL4L6QFWC3D', '--amount 100000000')
@@ -168,6 +171,7 @@ async function s7_referral_reward() {
 
 async function s8_fee_lifecycle() {
   console.log('▶ S8: Fee lifecycle — collect + withdraw')
+  const treasuryBefore = usdcBalance('GAPCUR73ENAZ6RVFEUIGEEPKBRJWSVQ7N6INTJ56AYZB4BLNVRPMMFJP')
   invoke('kindlepool-deployer', 'set_fee', '--caller GAPCUR73ENAZ6RVFEUIGEEPKBRJWSVQ7N6INTJ56AYZB4BLNVRPMMFJP', '--fee_bps 50', '--treasury GAPCUR73ENAZ6RVFEUIGEEPKBRJWSVQ7N6INTJ56AYZB4BLNVRPMMFJP')
   await pace()
   const before = invoke('kindlepool-deployer', 'get_total_fees_collected')
@@ -182,10 +186,13 @@ async function s8_fee_lifecycle() {
   const after = invoke('kindlepool-deployer', 'get_total_fees_collected')
   // 0.5% of 200M = 1M fee
   check('S8', 'fee collected = 1M', '1000000', String(Number(after.match(/\d+/)?.[0] ?? 0) - Number(before.match(/\d+/)?.[0] ?? 0)))
-  const wd = invoke('kindlepool-deployer', 'withdraw_fees', `--caller ${'GAPCUR73ENAZ6RVFEUIGEEPKBRJWSVQ7N6INTJ56AYZB4BLNVRPMMFJP'}`, '--amount 1000000')
+  const wd = invoke('kindlepool-deployer', 'withdraw_fees', `--caller ${'GAPCUR73ENAZ6RVFEUIGEEPKBRJWSVQ7N6INTJ56AYZB4BLNVRPMMFJP'}`, '--amount 1000000', `--token ${USDC}`)
   check('S8', 'withdraw fees', 'Success', wd.includes('Success') ? 'Success' : wd)
   const zero = invoke('kindlepool-deployer', 'get_total_fees_collected')
   check('S8', 'FeeTotal drained', '0', String(zero.match(/\d+/)?.[0]))
+  // F-401 regression: the treasury must have RECEIVED the withdrawn 1M.
+  const treasuryAfter = usdcBalance('GAPCUR73ENAZ6RVFEUIGEEPKBRJWSVQ7N6INTJ56AYZB4BLNVRPMMFJP')
+  check('S8', 'treasury received 1M', '1000000', String(treasuryAfter - treasuryBefore))
 }
 
 async function s9_admin_transfer() {

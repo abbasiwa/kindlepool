@@ -48,6 +48,10 @@ impl SponsorPool {
         pool::finalize(&env, pool_id);
     }
 
+    pub fn claim_refund(env: Env, supporter: Address, pool_id: u32) -> i128 {
+        pool::claim_refund(&env, &supporter, pool_id)
+    }
+
     pub fn cancel_pool(env: Env, caller: Address, pool_id: u32) {
         pool::cancel_pool(&env, &caller, pool_id);
     }
@@ -121,8 +125,8 @@ impl SponsorPool {
         pool::set_fee_treasury(&env, &caller, &treasury);
     }
 
-    pub fn withdraw_fees(env: Env, caller: Address, amount: i128) {
-        pool::withdraw_fees(&env, &caller, amount);
+    pub fn withdraw_fees(env: Env, caller: Address, amount: i128, token: Address) {
+        pool::withdraw_fees(&env, &caller, amount, &token);
     }
 
     pub fn get_fee(env: Env) -> (i128, Option<Address>) {

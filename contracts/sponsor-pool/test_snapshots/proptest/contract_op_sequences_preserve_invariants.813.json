@@ -1406,11 +1406,18 @@
                 "bytes": "0000000000000000000000000000000000000000000000000000000000000005"
               },
               {
-                "symbol": "finalize"
+                "symbol": "submit_work"
               }
             ],
             "data": {
-              "u32": 4
+              "vec": [
+                {
+                  "u32": 7
+                },
+                {
+                  "bytes": "0202020202020202020202020202020202020202020202020202020202020202"
+                }
+              ]
             }
           }
         }
@@ -1522,12 +1529,15 @@
                   "string": "contract try_call failed"
                 },
                 {
-                  "symbol": "finalize"
+                  "symbol": "submit_work"
                 },
                 {
                   "vec": [
                     {
-                      "u32": 4
+                      "u32": 7
+                    },
+                    {
+                      "bytes": "0202020202020202020202020202020202020202020202020202020202020202"
                     }
                   ]
                 }
@@ -1652,19 +1662,22 @@
                 "bytes": "0000000000000000000000000000000000000000000000000000000000000005"
               },
               {
-                "symbol": "vote"
+                "symbol": "deposit"
               }
             ],
             "data": {
               "vec": [
                 {
-                  "u32": 3
+                  "u32": 6
                 },
                 {
-                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAATYON"
+                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAARQG5"
                 },
                 {
-                  "bool": true
+                  "i128": {
+                    "hi": 0,
+                    "lo": 0
+                  }
                 }
               ]
             }
@@ -1686,7 +1699,7 @@
               },
               {
                 "error": {
-                  "contract": 2
+                  "contract": 3
                 }
               }
             ],
@@ -1696,7 +1709,7 @@
                   "string": "failing with contract error"
                 },
                 {
-                  "u32": 2
+                  "u32": 3
                 }
               ]
             }
@@ -1718,7 +1731,7 @@
               },
               {
                 "error": {
-                  "contract": 2
+                  "contract": 3
                 }
               }
             ],
@@ -1743,7 +1756,7 @@
               },
               {
                 "error": {
-                  "contract": 2
+                  "contract": 3
                 }
               }
             ],
@@ -1768,7 +1781,7 @@
               },
               {
                 "error": {
-                  "contract": 2
+                  "contract": 3
                 }
               }
             ],
@@ -1778,18 +1791,21 @@
                   "string": "contract try_call failed"
                 },
                 {
-                  "symbol": "vote"
+                  "symbol": "deposit"
                 },
                 {
                   "vec": [
                     {
-                      "u32": 3
+                      "u32": 6
                     },
                     {
-                      "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAATYON"
+                      "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAARQG5"
                     },
                     {
-                      "bool": true
+                      "i128": {
+                        "hi": 0,
+                        "lo": 0
+                      }
                     }
                   ]
                 }

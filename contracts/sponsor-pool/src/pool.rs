@@ -1,5 +1,6 @@
 use soroban_sdk::{panic_with_error, token, Address, BytesN, Env, Vec};
 
+use crate::math;
 use crate::types::*;
 
 // ─── Flow Constants (timeline compression for testnet) ─────────
@@ -193,7 +194,7 @@ pub fn set_fee_treasury(env: &Env, caller: &Address, treasury: &Address) {
     );
 }
 
-pub fn withdraw_fees(env: &Env, caller: &Address, amount: i128) {
+pub fn withdraw_fees(env: &Env, caller: &Address, amount: i128, token: &Address) {
     caller.require_auth();
     require_admin(env, caller);
     if amount <= 0 {
@@ -207,6 +208,16 @@ pub fn withdraw_fees(env: &Env, caller: &Address, amount: i128) {
         Some(t) => t,
         None => panic_with_error!(env, PoolError::FeeTreasuryNotSet),
     };
+    // (F-401) Transfer the collected fees to the treasury in the given token.
+    // The platform may host pools in multiple tokens; the caller selects which
+    // token's accrued fees to withdraw. Bookkeeping is updated only after the
+    // transfer succeeds (Soroban is atomic — a failed transfer reverts all).
+    let token_client = token::Client::new(env, token);
+    let contract_balance = token_client.balance(&env.current_contract_address());
+    if contract_balance < amount {
+        panic_with_error!(env, PoolError::WithdrawExceedsBalance);
+    }
+    token_client.transfer(&env.current_contract_address(), &treasury, &amount);
     env.storage().instance().set(&DataKey::FeeTotal, &(total - amount));
     env.events().publish(
         (TOPIC_FEES_WITHDRAWN,),
@@ -216,7 +227,16 @@ pub fn withdraw_fees(env: &Env, caller: &Address, amount: i128) {
 
 fn get_pool_internal(env: &Env, pool_id: u32) -> Pool {
     match env.storage().persistent().get::<DataKey, Pool>(&DataKey::Pool(pool_id)) {
-        Some(p) => p,
+        Some(p) => {
+            // (F-201) Rolling TTL on every read: records must not expire while
+            // the pool is still alive (read-heavy pools can sit idle >31 days).
+            env.storage().persistent().extend_ttl(
+                &DataKey::Pool(pool_id),
+                env.ledger().sequence() + 535680,
+                env.ledger().sequence() + 535680,
+            );
+            p
+        }
         None => panic_with_error!(env, PoolError::PoolNotFound),
     }
 }
@@ -233,13 +253,25 @@ fn set_pool(env: &Env, pool_id: u32, pool: &Pool) {
 }
 
 fn get_supporter_internal(env: &Env, pool_id: u32, address: &Address) -> Supporter {
-    env.storage()
+    match env
+        .storage()
         .persistent()
         .get::<DataKey, Supporter>(&DataKey::Supporter(pool_id, address.clone()))
-        .unwrap_or(Supporter {
+    {
+        Some(s) => {
+            // (F-201) Rolling TTL on read.
+            env.storage().persistent().extend_ttl(
+                &DataKey::Supporter(pool_id, address.clone()),
+                env.ledger().sequence() + 535680,
+                env.ledger().sequence() + 535680,
+            );
+            s
+        }
+        None => Supporter {
             amount: 0,
             voted: false,
-        })
+        },
+    }
 }
 
 fn set_supporter(env: &Env, pool_id: u32, address: &Address, supporter: &Supporter) {
@@ -254,10 +286,23 @@ fn set_supporter(env: &Env, pool_id: u32, address: &Address, supporter: &Support
 }
 
 fn get_supporter_list(env: &Env, pool_id: u32) -> Vec<SupporterSnapshot> {
-    env.storage()
+    let key = DataKey::SupporterList(pool_id);
+    match env
+        .storage()
         .persistent()
-        .get::<DataKey, Vec<SupporterSnapshot>>(&DataKey::SupporterList(pool_id))
-        .unwrap_or(Vec::new(env))
+        .get::<DataKey, Vec<SupporterSnapshot>>(&key)
+    {
+        Some(list) => {
+            // (F-201) Rolling TTL on read.
+            env.storage().persistent().extend_ttl(
+                &key,
+                env.ledger().sequence() + 535680,
+                env.ledger().sequence() + 535680,
+            );
+            list
+        }
+        None => Vec::new(env),
+    }
 }
 
 fn push_supporter_list(env: &Env, pool_id: u32, snapshot: &SupporterSnapshot) {
@@ -483,6 +528,11 @@ pub fn vote(env: &Env, pool_id: u32, voter: &Address, approve: bool) {
     if supporter_state.amount <= 0 {
         panic_with_error!(env, PoolError::NotSupporter);
     }
+    // (F-101) The creator may not vote on their own pool: a self-deposit
+    // must not outweigh genuine supporter sentiment (self-approval attack).
+    if voter == &pool.creator {
+        panic_with_error!(env, PoolError::CreatorCannotVote);
+    }
     if supporter_state.voted {
         panic_with_error!(env, PoolError::AlreadyVoted);
     }
@@ -521,6 +571,11 @@ pub fn finalize(env: &Env, pool_id: u32) {
         panic_with_error!(env, PoolError::AlreadyFinalized);
     }
 
+    // (F-501) Settlement must not bypass an open arbitration.
+    if pool.status == STATUS_DISPUTED || pool.status == STATUS_APPEALED {
+        panic_with_error!(env, PoolError::DisputePending);
+    }
+
     let now = env.ledger().timestamp();
 
     if pool.status == STATUS_AWAITING_VOTE && now < pool.vote_deadline && now < pool.deadline {
@@ -540,38 +595,36 @@ pub fn finalize(env: &Env, pool_id: u32) {
     if goal_met && pool.work_submitted && approved {
         // --- PAYOUT to creator (minus platform fee) ---
         let fee_bps: i128 = env.storage().instance().get(&DataKey::FeeBps).unwrap_or(0i128);
-        let fee = if fee_bps > 0 {
-            pool.total_deposited.checked_mul(fee_bps).expect("fee overflow") / 10000i128
-        } else {
-            0i128
-        };
-        let amount = pool.total_deposited.checked_sub(fee).expect("amount underflow");
+        let (amount, fee) = math::settle_fee(pool.total_deposited, fee_bps as u32);
 
         // Transfer net amount to creator
         token_client.transfer(&env.current_contract_address(), &pool.creator, &amount);
 
-        // Transfer fee to treasury
-        if fee > 0 {
-            let treasury: Address = env.storage().instance().get(&DataKey::FeeTreasury)
-                .expect("FeeTreasury not set when FeeBps > 0");
-            token_client.transfer(&env.current_contract_address(), &treasury, &fee);
-
-            let total_fees: i128 = env.storage().instance().get(&DataKey::FeeTotal).unwrap_or(0i128);
-            env.storage().instance().set(&DataKey::FeeTotal, &(total_fees + fee));
-        }
-
-        // Credit referral rewards for all supporters
-        let supporter_list = env.storage().persistent().get::<DataKey, Vec<SupporterSnapshot>>(&DataKey::SupporterList(pool_id))
-            .unwrap_or(Vec::new(env));
+        // Credit referral rewards for all supporters. (F-105) The creator may
+        // not self-deal an unlimited "bonus": total credited per pool is
+        // capped by the platform fee actually collected from that pool, so
+        // rewards are self-funded from fee revenue and cannot exceed it.
+        let supporter_list = get_supporter_list(env, pool_id);
         let referrer_key = DataKey::Referral(pool.creator.clone());
         let mut referrals: Vec<Referral> = env.storage().persistent().get(&referrer_key).unwrap_or(Vec::new(env));
+        let mut credited: i128 = 0;
         for i in 0..supporter_list.len() {
             if let Some(s) = supporter_list.get(i) {
+                if s.address == pool.creator {
+                    continue;
+                }
                 for j in 0..referrals.len() {
                     if let Some(mut r) = referrals.get(j) {
                         if r.referee == s.address && !r.claimed && r.reward == 0 {
-                            let reward = (s.amount * REFERRAL_BONUS_BPS) / 10000i128;
+                            let mut reward = math::referral_reward(s.amount, REFERRAL_BONUS_BPS as i128);
+                            if reward > fee.checked_sub(credited).unwrap_or(0) {
+                                reward = fee.checked_sub(credited).unwrap_or(0);
+                            }
+                            if reward <= 0 {
+                                continue;
+                            }
                             r.reward = reward;
+                            credited = credited.saturating_add(reward);
                             referrals.set(j, r);
                         }
                     }
@@ -580,6 +633,19 @@ pub fn finalize(env: &Env, pool_id: u32) {
         }
         env.storage().persistent().set(&referrer_key, &referrals);
         env.storage().persistent().extend_ttl(&referrer_key, env.ledger().sequence() + 535680, env.ledger().sequence() + 535680);
+
+        // Distribute the fee: referral rewards are reserved first (they remain
+        // in the contract, claimable by the referrer); the remainder goes to
+        // the treasury. FeeTotal tracks only what the treasury actually gets,
+        // so withdraw_fees (balance-guarded) can never touch reward reserves.
+        let treasury_fee = fee.checked_sub(credited).unwrap_or(0);
+        if treasury_fee > 0 {
+            let treasury: Address = env.storage().instance().get(&DataKey::FeeTreasury)
+                .expect("FeeTreasury not set when FeeBps > 0");
+            token_client.transfer(&env.current_contract_address(), &treasury, &treasury_fee);
+            let total_fees: i128 = env.storage().instance().get(&DataKey::FeeTotal).unwrap_or(0i128);
+            env.storage().instance().set(&DataKey::FeeTotal, &(total_fees + treasury_fee));
+        }
 
         let mut paid_pool = pool.clone();
         paid_pool.status = STATUS_PAID;
@@ -595,6 +661,8 @@ pub fn finalize(env: &Env, pool_id: u32) {
         );
     } else {
         // --- REFUND to all supporters ---
+        // (KI-016) On success the supporter record is zeroed so the refund can
+        // never be claimed twice; on failure it stays claimable via claim_refund.
         let supporter_list = get_supporter_list(env, pool_id);
         for i in 0..supporter_list.len() {
             if let Some(snapshot) = supporter_list.get(i) {
@@ -607,6 +675,9 @@ pub fn finalize(env: &Env, pool_id: u32) {
                     if result.is_err() {
                         continue;
                     }
+                    let mut cleared = get_supporter_internal(env, pool_id, &snapshot.address);
+                    cleared.amount = 0;
+                    set_supporter(env, pool_id, &snapshot.address, &cleared);
                 }
             }
         }
@@ -656,11 +727,7 @@ pub fn raise_dispute(
     }
 
     // Calculate and collect dispute fee (1% of pool goal)
-    let fee = pool
-        .goal
-        .checked_mul(DISPUTE_FEE_BPS)
-        .expect("fee overflow")
-        / 10000i128;
+    let fee = math::dispute_fee(pool.goal);
 
     let token_client = token::Client::new(env, &pool.token);
     token_client.transfer(disputant, &env.current_contract_address(), &fee);
@@ -723,14 +790,7 @@ pub fn resolve_dispute(
     caller.require_auth();
     when_not_paused(env);
 
-    let dispute = match env
-        .storage()
-        .persistent()
-        .get::<DataKey, Dispute>(&DataKey::Dispute(dispute_id))
-    {
-        Some(d) => d,
-        None => panic_with_error!(env, PoolError::PoolNotFound),
-    };
+    let dispute = get_dispute_internal(env, dispute_id);
 
     if dispute.status != 0 && dispute.status != 3 {
         panic_with_error!(env, PoolError::DisputeAlreadyRaised);
@@ -791,25 +851,14 @@ pub fn resolve_dispute(
 
 pub fn close_dispute(env: &Env, pool_id: u32, dispute_id: u32) {
     when_not_paused(env);
-    let mut dispute = match env
-        .storage()
-        .persistent()
-        .get::<DataKey, Dispute>(&DataKey::Dispute(dispute_id))
-    {
-        Some(d) => d,
-        None => panic_with_error!(env, PoolError::PoolNotFound),
-    };
+    let mut dispute = get_dispute_internal(env, dispute_id);
 
     if dispute.status != 0 && dispute.status != 3 {
         panic_with_error!(env, PoolError::DisputeAlreadyRaised);
     }
 
     let pool = get_pool_internal(env, pool_id);
-    let vote_list: Vec<ArbitratorVote> = env
-        .storage()
-        .persistent()
-        .get(&DataKey::ArbitratorVoteList(dispute_id))
-        .unwrap_or(Vec::new(env));
+    let vote_list: Vec<ArbitratorVote> = get_vote_list_internal(env, dispute_id);
 
     let mut votes_for_creator: i128 = 0;
     let mut votes_against_creator: i128 = 0;
@@ -829,10 +878,7 @@ pub fn close_dispute(env: &Env, pool_id: u32, dispute_id: u32) {
         // NOTE: strict majority required. A tie (or zero votes) resolves in
         // favor of supporters (else branch) — documented intended behavior.
         let fee_bps: i128 = env.storage().instance().get(&DataKey::FeeBps).unwrap_or(0i128);
-        let fee = if fee_bps > 0 {
-            pool.total_deposited.checked_mul(fee_bps).expect("fee overflow") / 10000i128
-        } else { 0i128 };
-        let payout = pool.total_deposited.checked_sub(fee).expect("amount underflow");
+        let (payout, fee) = math::settle_fee(pool.total_deposited, fee_bps as u32);
 
         let token_client = token::Client::new(env, &pool.token);
         token_client.transfer(&env.current_contract_address(), &pool.creator, &payout);
@@ -862,11 +908,17 @@ pub fn close_dispute(env: &Env, pool_id: u32, dispute_id: u32) {
         for i in 0..supporter_list.len() {
             if let Some(s) = supporter_list.get(i) {
                 if s.amount > 0 {
-                    let _ = token_client.try_transfer(
+                    let result = token_client.try_transfer(
                         &env.current_contract_address(),
                         &s.address,
                         &s.amount,
                     );
+                    if result.is_err() {
+                        continue; // (KI-016) keep record claimable
+                    }
+                    let mut cleared = get_supporter_internal(env, pool_id, &s.address);
+                    cleared.amount = 0;
+                    set_supporter(env, pool_id, &s.address, &cleared);
                 }
             }
         }
@@ -921,14 +973,7 @@ pub fn appeal_dispute(
     disputant.require_auth();
     when_not_paused(env);
 
-    let mut dispute = match env
-        .storage()
-        .persistent()
-        .get::<DataKey, Dispute>(&DataKey::Dispute(dispute_id))
-    {
-        Some(d) => d,
-        None => panic_with_error!(env, PoolError::PoolNotFound),
-    };
+    let mut dispute = get_dispute_internal(env, dispute_id);
 
     if dispute.status != 0 && dispute.status != 3 {
         panic_with_error!(env, PoolError::DisputeAlreadyRaised);
@@ -961,6 +1006,52 @@ pub fn appeal_dispute(
     let mut pool_mut = get_pool_internal(env, pool_id);
     pool_mut.status = STATUS_APPEALED;
     set_pool(env, pool_id, &pool_mut);
+
+    // (F-601) The appeal transition must be observable by indexers/notifiers.
+    env.events().publish(
+        (TOPIC_DISPUTE_APPEALED,),
+        DisputeAppealedEvent {
+            pool_id,
+            dispute_id,
+            appealed_by: disputant.clone(),
+            fee: dispute.fee,
+        },
+    );
+}
+
+fn get_dispute_internal(env: &Env, dispute_id: u32) -> Dispute {
+    match env
+        .storage()
+        .persistent()
+        .get::<DataKey, Dispute>(&DataKey::Dispute(dispute_id))
+    {
+        Some(d) => {
+            // (F-201) Rolling TTL on read.
+            env.storage().persistent().extend_ttl(
+                &DataKey::Dispute(dispute_id),
+                env.ledger().sequence() + 535680,
+                env.ledger().sequence() + 535680,
+            );
+            d
+        }
+        None => panic_with_error!(env, PoolError::PoolNotFound),
+    }
+}
+
+fn get_vote_list_internal(env: &Env, dispute_id: u32) -> Vec<ArbitratorVote> {
+    let key = DataKey::ArbitratorVoteList(dispute_id);
+    match env.storage().persistent().get(&key) {
+        Some(list) => {
+            // (F-201) Rolling TTL on read.
+            env.storage().persistent().extend_ttl(
+                &key,
+                env.ledger().sequence() + 535680,
+                env.ledger().sequence() + 535680,
+            );
+            list
+        }
+        None => Vec::new(env),
+    }
 }
 
 pub fn get_dispute(env: &Env, dispute_id: u32) -> Option<Dispute> {
@@ -994,6 +1085,8 @@ pub fn register_referral(env: &Env, referrer: &Address, referee: &Address, pool_
     if referrer == referee {
         panic_with_error!(env, PoolError::InvalidGoal);
     }
+    // (F-105) Referrals must reference a real pool (also refreshes TTL).
+    get_pool_internal(env, pool_id);
 
     let key = DataKey::Referral(referrer.clone());
     let mut referrals: Vec<Referral> = env.storage().persistent().get(&key).unwrap_or(Vec::new(env));
@@ -1126,6 +1219,53 @@ pub fn get_contract_version(_env: &Env) -> u32 {
     CONTRACT_VERSION
 }
 
+// ─── Refund Recovery (KI-016) ─────────────────────────────────
+
+/// Claims a pro-rata refund that a previous `try_transfer` could not deliver
+/// (recipient unreachable at settlement time). Terminal EXPIRED pools keep
+/// their supporter records so funds can be claimed later; the supporter
+/// record is zeroed on a successful claim to prevent double-claiming.
+pub fn claim_refund(env: &Env, supporter: &Address, pool_id: u32) -> i128 {
+    supporter.require_auth();
+    when_not_paused(env);
+
+    let pool = get_pool_internal(env, pool_id);
+    if pool.status != STATUS_EXPIRED {
+        panic_with_error!(env, PoolError::PoolNotOpen);
+    }
+
+    let supporter_state = get_supporter_internal(env, pool_id, supporter);
+    if supporter_state.amount <= 0 {
+        panic_with_error!(env, PoolError::NotSupporter);
+    }
+
+    let token_client = token::Client::new(env, &pool.token);
+    let contract_balance = token_client.balance(&env.current_contract_address());
+    if contract_balance < supporter_state.amount {
+        panic_with_error!(env, PoolError::InsufficientBalance);
+    }
+
+    token_client.transfer(
+        &env.current_contract_address(),
+        supporter,
+        &supporter_state.amount,
+    );
+    let claimed = supporter_state.amount;
+    let mut updated = supporter_state.clone();
+    updated.amount = 0;
+    set_supporter(env, pool_id, supporter, &updated);
+
+    env.events().publish(
+        (TOPIC_REFUND_CLAIMED,),
+        RefundClaimedEvent {
+            pool_id,
+            supporter: supporter.clone(),
+            amount: claimed,
+        },
+    );
+    claimed
+}
+
 // ─── Cancellation ──────────────────────────────────────────────
 
 pub fn cancel_pool(env: &Env, caller: &Address, pool_id: u32) {
@@ -1152,11 +1292,17 @@ pub fn cancel_pool(env: &Env, caller: &Address, pool_id: u32) {
     for i in 0..supporter_list.len() {
         if let Some(snapshot) = supporter_list.get(i) {
             if snapshot.amount > 0 {
-                let _ = token_client.try_transfer(
+                let result = token_client.try_transfer(
                     &env.current_contract_address(),
                     &snapshot.address,
                     &snapshot.amount,
                 );
+                if result.is_err() {
+                    continue; // (KI-016) keep record claimable
+                }
+                let mut cleared = get_supporter_internal(env, pool_id, &snapshot.address);
+                cleared.amount = 0;
+                set_supporter(env, pool_id, &snapshot.address, &cleared);
             }
         }
     }

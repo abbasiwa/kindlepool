@@ -74,6 +74,8 @@ pub enum PoolError {
     InvalidTreasury = 37,
     WithdrawExceedsBalance = 38,
     InvalidAmount = 39,
+    CreatorCannotVote = 40,
+    DisputePending = 41,
 }
 
 // Events
@@ -156,7 +158,7 @@ pub const DISPUTE_REASON_NO_DELIVERY: u32 = 1;
 
 pub const DISPUTE_FEE_BPS: i128 = 100; // 1% fee for raising dispute
 
-pub const CONTRACT_VERSION: u32 = 3;
+pub const CONTRACT_VERSION: u32 = 4;
 
 pub const PAUSE_NOTICE_SECONDS: u64 = 86400; // 24h notice before pause takes effect
 pub const UNPAUSE_COOLDOWN_SECONDS: u64 = 172800; // 48h cooldown after pause
@@ -179,6 +181,8 @@ pub const TOPIC_POOL_PAID: soroban_sdk::Symbol = soroban_sdk::symbol_short!("p_p
 pub const TOPIC_POOL_REFUNDED: soroban_sdk::Symbol = soroban_sdk::symbol_short!("p_ref");
 pub const TOPIC_DISPUTE_RAISED: soroban_sdk::Symbol = soroban_sdk::symbol_short!("p_disp");
 pub const TOPIC_DISPUTE_RESOLVED: soroban_sdk::Symbol = soroban_sdk::symbol_short!("p_resl");
+pub const TOPIC_DISPUTE_APPEALED: soroban_sdk::Symbol = soroban_sdk::symbol_short!("p_appl");
+pub const TOPIC_REFUND_CLAIMED: soroban_sdk::Symbol = soroban_sdk::symbol_short!("p_rclm");
 pub const TOPIC_ARBITRATOR_VOTED: soroban_sdk::Symbol = soroban_sdk::symbol_short!("p_arbv");
 pub const TOPIC_REFERRAL_REGISTERED: soroban_sdk::Symbol = soroban_sdk::symbol_short!("p_refr");
 #[allow(dead_code)]
@@ -328,6 +332,23 @@ pub struct DisputeResolvedEvent {
     pub resolution: u32,
     pub votes_for_creator: i128,
     pub votes_against_creator: i128,
+}
+
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct DisputeAppealedEvent {
+    pub pool_id: u32,
+    pub dispute_id: u32,
+    pub appealed_by: Address,
+    pub fee: i128,
+}
+
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct RefundClaimedEvent {
+    pub pool_id: u32,
+    pub supporter: Address,
+    pub amount: i128,
 }
 
 #[contracttype]
