@@ -1,4 +1,4 @@
-import { check, createPool, invoke, pace, poolState, results, sleep, usdcBalance, USDC, CT, NET, ATT, SUPB, SUPC } from './harness'
+import { check, createPool, invoke, pace, poolState, results, sleep, usdcBalance, usdcInvoke, USDC, CT, NET, ATT, SUPB, SUPC } from './harness'
 
 // ── Suite runners ────────────────────────────────────────────────
 
@@ -186,13 +186,25 @@ async function s8_fee_lifecycle() {
   const after = invoke('kindlepool-deployer', 'get_total_fees_collected')
   // 0.5% of 200M = 1M fee
   check('S8', 'fee collected = 1M', '1000000', String(Number(after.match(/\d+/)?.[0] ?? 0) - Number(before.match(/\d+/)?.[0] ?? 0)))
+  // F-401 semantics: the fee is DELIVERED to the treasury at settlement, so the
+  // contract holds 0 and withdraw_fees must revert (#38 — balance guard).
   const wd = invoke('kindlepool-deployer', 'withdraw_fees', `--caller ${'GAPCUR73ENAZ6RVFEUIGEEPKBRJWSVQ7N6INTJ56AYZB4BLNVRPMMFJP'}`, '--amount 1000000', `--token ${USDC}`)
-  check('S8', 'withdraw fees', 'Success', wd.includes('Success') ? 'Success' : wd)
+  check('S8', 'withdraw on empty contract #38', '#38', wd)
+  const feeState = invoke('kindlepool-deployer', 'get_total_fees_collected')
+  const feeNow = Number(feeState.match(/\d+/)?.[0] ?? 0)
+  check('S8', 'FeeTotal +1M', String(Number(before) + 1000000), String(feeNow))
+  const treasuryAfterFee = usdcBalance('GAPCUR73ENAZ6RVFEUIGEEPKBRJWSVQ7N6INTJ56AYZB4BLNVRPMMFJP')
+  // Treasury (deployer = creator) received payout 199M + fee 1M = 200M.
+  check('S8', 'treasury received payout+fee', '200000000', String(treasuryAfterFee - treasuryBefore))
+  // F-401 live proof: orphaned surplus in the contract IS withdrawable to treasury.
+  usdcInvoke('attacker', 'transfer', `--from GCCWMTFMGWUBHS75VVPQSORIHGJZW3A57GN5TREFJIXR4JL4L6QFWC3D`, `--to ${CT}`, '--amount 1000000')
+  await pace()
+  const wd2 = invoke('kindlepool-deployer', 'withdraw_fees', `--caller ${'GAPCUR73ENAZ6RVFEUIGEEPKBRJWSVQ7N6INTJ56AYZB4BLNVRPMMFJP'}`, '--amount 1000000', `--token ${USDC}`)
+  check('S8', 'withdraw surplus transfers', 'Success', wd2.includes('Success') ? 'Success' : wd2)
+  const treasuryFinal = usdcBalance('GAPCUR73ENAZ6RVFEUIGEEPKBRJWSVQ7N6INTJ56AYZB4BLNVRPMMFJP')
+  check('S8', 'treasury +1M after withdraw', '1000000', String(treasuryFinal - treasuryAfterFee))
   const zero = invoke('kindlepool-deployer', 'get_total_fees_collected')
   check('S8', 'FeeTotal drained', '0', String(zero.match(/\d+/)?.[0]))
-  // F-401 regression: the treasury must have RECEIVED the withdrawn 1M.
-  const treasuryAfter = usdcBalance('GAPCUR73ENAZ6RVFEUIGEEPKBRJWSVQ7N6INTJ56AYZB4BLNVRPMMFJP')
-  check('S8', 'treasury received 1M', '1000000', String(treasuryAfter - treasuryBefore))
 }
 
 async function s9_admin_transfer() {
@@ -212,8 +224,10 @@ async function s9_admin_transfer() {
 
 async function s10_pause_cycle() {
   console.log('▶ S10: Pause full cycle (compressed 60s timelocks)')
+  // Fresh contracts carry mainnet defaults; compress for the live window.
+  invoke('kindlepool-deployer', 'set_flow_constants', '--caller GAPCUR73ENAZ6RVFEUIGEEPKBRJWSVQ7N6INTJ56AYZB4BLNVRPMMFJP', '--vote_deadline_seconds 120', '--pause_notice_seconds 60', '--unpause_cooldown_seconds 60')
+  await pace()
   const pid = createPool(50000000, 300)
-  // Compress is already set on contract (120/60/60). Schedule + wait 60 + pause.
   const sched = invoke('kindlepool-deployer', 'schedule_pause', `--caller ${'GAPCUR73ENAZ6RVFEUIGEEPKBRJWSVQ7N6INTJ56AYZB4BLNVRPMMFJP'}`)
   check('S10', 'schedule', 'Success', sched.includes('Success') ? 'Success' : sched)
   const early = invoke('kindlepool-deployer', 'pause', `--caller ${'GAPCUR73ENAZ6RVFEUIGEEPKBRJWSVQ7N6INTJ56AYZB4BLNVRPMMFJP'}`)
