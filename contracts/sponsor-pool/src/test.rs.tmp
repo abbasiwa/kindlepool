@@ -1,8 +1,0 @@
-#[test]
-fn test_is_empty_behavior() {
-    let env = Env::default();
-    let b = BytesN::from_array(&env, &[0x03u8; 32]);
-    assert!(!b.is_empty(), "0x03-filled bytes should not be empty");
-    let z = BytesN::from_array(&env, &[0x00u8; 32]);
-    assert!(z.is_empty(), "zero bytes should be empty");
-}

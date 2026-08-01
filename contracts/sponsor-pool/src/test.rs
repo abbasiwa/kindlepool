@@ -1066,6 +1066,7 @@ fn test_platform_stats_paid_and_expired() {
 fn test_close_dispute_creator_wins_with_fee() {
     let (env, admin, creator, supporter, client) = setup_initialized();
     env.ledger().set_timestamp(1_000_000);
+    client.set_flow_constants(&admin, &120, &60, &60);
     client.set_fee(&admin, &500, &admin);
     let token_admin = Address::generate(&env);
     let token = create_token(&env, &token_admin);
@@ -1158,3 +1159,4 @@ fn test_stats_counts_open_pool() {
     assert_eq!(stats.pool_count, 1);
     assert_eq!(stats.active_pools, 1);
 }
+
